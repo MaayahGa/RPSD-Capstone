@@ -1,0 +1,33 @@
+{
+  "_note": "Made-up test data in the same shape Google returns. Not real reviews.",
+  "id": "TEST_PLACE_ID_123",
+  "displayName": {"text": "Example Fertility Clinic", "languageCode": "en"},
+  "formattedAddress": "123 Example St, San Diego, CA 92101, USA",
+  "rating": 4.2,
+  "userRatingCount": 87,
+  "reviews": [
+    {
+      "name": "places/TEST_PLACE_ID_123/reviews/r1",
+      "relativePublishTimeDescription": "2 months ago",
+      "rating": 5,
+      "text": {"text": "Friendly front desk and clear communication.", "languageCode": "en"},
+      "publishTime": "2026-08-20T17:00:00Z",
+      "authorAttribution": {"displayName": "Test Reviewer A"}
+    },
+    {
+      "name": "places/TEST_PLACE_ID_123/reviews/r2",
+      "relativePublishTimeDescription": "5 months ago",
+      "rating": 2,
+      "text": {"text": "Long wait times and hard to reach by phone.", "languageCode": "en"},
+      "publishTime": "2026-05-11T17:00:00Z",
+      "authorAttribution": {"displayName": "Test Reviewer B"}
+    },
+    {
+      "name": "places/TEST_PLACE_ID_123/reviews/r3",
+      "relativePublishTimeDescription": "a year ago",
+      "rating": 4,
+      "publishTime": "2025-10-02T17:00:00Z",
+      "authorAttribution": {"displayName": "Test Reviewer C"}
+    }
+  ]
+}
