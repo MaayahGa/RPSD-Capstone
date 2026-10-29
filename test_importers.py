@@ -13,8 +13,13 @@ import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import sys
+for _sub in ("google", "reddit", "yelp"):
+    sys.path.insert(0, str(Path(__file__).parent / _sub))
+
 import import_google_takeout as gt
 import import_manual as manual
+import parse_yelp_paste as yp
 import reddit_collector as rc
 import reputation_item as ri
 
@@ -92,18 +97,70 @@ yelp,RPSD,2026-02-14,1,,Made-up Yelp review about billing.,,,3,yes
 reddit,SDFC,2025-11-01,,Made-up title,Made-up post text.,https://reddit.com/x,abc,12,
 yelp,Unknown Clinic,2026-01-01,5,,text,,,,
 yelp,RPSD,Feb 2026,5,,text,,,,
+yelp,RPSD,Oct 12 2026x,5,,text,,,,
 yelp,RPSD,2026-01-01,9,,text,,,,
 """
 
 
 def test_manual_import_validates_rows():
     items, errors = manual.parse_rows(csv.DictReader(io.StringIO(MANUAL_CSV)), CLINICS)
-    assert len(items) == 2 and len(errors) == 3
+    assert len(items) == 2 and len(errors) == 4
     yelp, reddit = items
     assert yelp["clinic"] == RPSD and yelp["rating"] == 1 and yelp["owner_replied"] == 1
     assert yelp["id"].startswith("yelp_h")          # hashed: no native ID given
     assert reddit["id"] == "reddit_abc" and reddit["rating"] is None
     assert reddit["clinic"] == "San Diego Fertility Center"
+
+
+def test_manual_dates_in_spreadsheet_formats():
+    rows = "source,clinic,posted_at,text\n" + "".join(
+        f"yelp,RPSD,{d},Made-up {i}\n"
+        for i, d in enumerate(["2026-10-12", "10/12/2026", '"Oct 12, 2026"', "10/12/26"]))
+    items, errors = manual.parse_rows(csv.DictReader(io.StringIO(rows)), CLINICS)
+    assert errors == [] and {i["posted_at"] for i in items} == {"2026-10-12"}
+
+
+def test_manual_short_sheet_with_defaults():
+    rows = "posted_at,rating,text,owner_replied\n10/12/2026,2,Made-up short-sheet review,yes\n"
+    items, errors = manual.parse_rows(csv.DictReader(io.StringIO(rows)), CLINICS,
+                                      default_source="yelp", default_clinic="RPSD")
+    assert errors == [] and items[0]["source"] == "yelp" and items[0]["clinic"] == RPSD
+    assert items[0]["rating"] == 2 and items[0]["owner_replied"] == 1
+
+
+FAKE_YELP_PASTE = """Reviews
+175 reviews
+Filter
+Fake Name A.
+0 friends
+1 review
+10/19/26
+Made-up first paragraph.
+
+Made-up second paragraph.
+Fake Staff publicly responded on Oct 26, 11:58 AM
+Made-up reply that must not be kept.
+Fake Name B.
+217 friends
+3 reviews
+Elite 26
+1/5/2025
+Made-up short review.
+Page 1 of 9
+Next
+"""
+
+
+def test_yelp_paste_parser():
+    reviews = yp.parse_text(FAKE_YELP_PASTE)
+    assert [r["posted_at"] for r in reviews] == ["2026-10-19", "2025-01-05"]
+    assert reviews[0]["text"] == "Made-up first paragraph.\n\nMade-up second paragraph."
+    assert reviews[0]["owner_replied"] == "yes" and reviews[1]["owner_replied"] == ""
+    assert reviews[1]["text"] == "Made-up short review."      # footer cut off
+    dump = json.dumps(reviews)
+    assert "Fake Name" not in dump and "reply that must not" not in dump
+    assert yp.rating_from_filename("data/raw/yelp_2star_page3.txt") == 2
+    assert yp.rating_from_filename("yelp_page1.txt") is None
 
 
 def test_reddit_comment_matching():

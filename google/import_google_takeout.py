@@ -11,26 +11,31 @@ How to get the export (logged into the capstone Google account):
   2. Click "Deselect all", then tick only "Google Business Profile"
   3. Next step -> "Export once", .zip -> Create export
   4. Download the .zip when Google emails the link (usually minutes)
-  5. Move it into the data/raw/ folder of this repo (data/ is gitignored)
+  5. Move it into data/raw/google/ in this repo (data/ is gitignored)
 
 Then run:
-    python import_google_takeout.py data/raw/takeout-XXXX.zip
+    python google/import_google_takeout.py data/raw/google/takeout-XXXX.zip
     python reputation_item.py export
 
 Reviewer names and profile photos in the export are dropped and never saved.
 """
 
+# Let this script (in a source subfolder) import shared code from the repo root.
+import sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 import argparse
 import json
 import re
 import zipfile
-from pathlib import Path
 
 from reputation_item import DB_PATH, make_item, save_items
 
 STARS = {"ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4, "FIVE": 5}
 
-CLINICS_FILE = Path(__file__).parent / "clinics.json"
+CLINICS_FILE = ROOT / "clinics.json"
 
 
 def load_clinics():

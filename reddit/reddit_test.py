@@ -7,12 +7,12 @@ Usernames are never printed or saved.
 
 Setup:
   1. Create a "script" app at https://www.reddit.com/prefs/apps
-  2. Put these in a .env file next to this script:
+  2. Put these in the .env file in the repo root:
        REDDIT_CLIENT_ID=...
        REDDIT_CLIENT_SECRET=...
        REDDIT_USER_AGENT=rpsd-capstone-test by u/your_username
   3. pip install -r requirements.txt
-  4. python reddit_test.py
+  4. python reddit/reddit_test.py   (run from the repo root)
 """
 
 import os
@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 import praw
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 SUBREDDITS = "IVF+infertility+sandiego"
 

@@ -10,22 +10,27 @@ What it does:
 Usernames are never read into the saved records.
 
 Run:
-    python reddit_collector.py              # saves to data/reputation.db
+    python reddit/reddit_collector.py       # saves to data/reputation.db
     python reputation_item.py export
 """
+
+# Let this script (in a source subfolder) import shared code from the repo root.
+import sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
 import argparse
 import json
 import os
 import re
 from datetime import datetime, timezone
-from pathlib import Path
 
 from reputation_item import DB_PATH, make_item, save_items
 
 SUBREDDITS = "IVF+infertility+sandiego+TryingForABaby+eggfreezing"
 RESULTS_PER_QUERY = 50
-CLINICS_FILE = Path(__file__).parent / "clinics.json"
+CLINICS_FILE = ROOT / "clinics.json"
 
 
 def alias_patterns(clinics):
@@ -93,7 +98,7 @@ def main():
     parser.add_argument("--db", default=DB_PATH)
     args = parser.parse_args()
 
-    load_dotenv()
+    load_dotenv(ROOT / ".env")
     reddit = praw.Reddit(
         client_id=os.getenv("REDDIT_CLIENT_ID"),
         client_secret=os.getenv("REDDIT_CLIENT_SECRET"),

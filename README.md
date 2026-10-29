@@ -6,22 +6,32 @@ sources only** (official APIs, not scraping) for the rest of the reputation pipe
 
 ## What's here
 
-| File | What it does |
-| --- | --- |
-| `places_test.py` | Looks up each clinic on Google by place ID and prints its rating, review count, and up to 5 reviews |
-| `clinics.json` | RPSD and the 3 priority competitors, with their Google place IDs |
-| `test_places.py` | Offline tests for the Places code (no API key or internet needed) |
-| `sample_place.json` | **Made-up** review data in Google's format, used by the tests |
-| `reddit_test.py` | Early test of searching Reddit for clinic mentions (PRAW) |
-| `reputation_item.py` | Shared record format, SQLite database (`data/reputation.db`), and CSV/JSON export |
-| `import_google_takeout.py` | Imports RPSD's **full** Google review history from a Google Takeout export |
-| `import_manual.py` | Imports hand-logged reviews/posts (Yelp, Reddit, FertilityIQ...) from a CSV |
-| `templates/manual_reviews_template.csv` | Blank template for `import_manual.py` |
-| `reddit_collector.py` | Saves Reddit posts **and comments** naming a clinic (needs approved API app) |
-| `test_importers.py` | Offline tests for the importers, all made-up data |
-| `source_inventory.md` | Status, method and limits for every source |
-| `requirements.txt` | Python packages the scripts need |
-| `.env.example` | Template for your API keys |
+```
+RPSD-Capstone/
+├── README.md, requirements.txt, .env.example   setup
+├── clinics.json             RPSD + competitors, Google place IDs, name aliases
+├── reputation_item.py       shared record format, SQLite database, CSV/JSON export
+├── import_manual.py         imports hand-logged reviews/posts from a CSV (any source)
+├── test_importers.py        offline tests for everything below (made-up data)
+├── source_inventory.md      status, method and limits of every source
+├── templates/               blank CSV template for import_manual.py
+├── google/
+│   ├── import_google_takeout.py   RPSD's full review history from Google Takeout
+│   ├── places_test.py             live rating/review check for all clinics (Places API)
+│   ├── test_places.py             offline tests for places_test.py
+│   └── sample_place.json          made-up Places data for the tests
+├── reddit/
+│   ├── reddit_collector.py        saves posts + comments naming a clinic (needs approved API app)
+│   └── reddit_test.py             early PRAW search test
+├── yelp/
+│   └── parse_yelp_paste.py        turns text copied from RPSD's Yelp dashboard into a CSV
+└── data/                    collected data, NEVER committed (gitignored)
+    ├── raw/google/  raw/yelp/  raw/reddit/   downloads and pastes
+    ├── reputation.db                          the database
+    └── exports/                               CSV/JSON for Tracks 2 and 4
+```
+
+**Run every command from the repo root** (the `RPSD-Capstone` folder).
 
 ## Setup
 
@@ -42,14 +52,15 @@ sources only** (official APIs, not scraping) for the rest of the reputation pipe
 
 ## Running
 
-Offline tests (should print `6/6 tests passed`):
+Offline tests:
 ```
-python test_places.py
+python test_importers.py
+python google/test_places.py
 ```
 
 Live Google lookup for all clinics in `clinics.json`:
 ```
-python places_test.py
+python google/places_test.py
 ```
 
 ## Collecting reviews into the database
@@ -58,10 +69,11 @@ Everything ends up in `data/reputation.db` as `reputation_item` records. **`data
 reviews contain real patients' health details, and this repo is public.
 
 ```
-mkdir -p data/raw                                     # put downloads here
-python import_google_takeout.py data/raw/takeout-XXXX.zip
-python import_manual.py data/raw/yelp_rpsd.csv
-python reddit_collector.py                            # once Reddit approves the app
+mkdir -p data/raw/google data/raw/yelp data/raw/reddit
+python google/import_google_takeout.py data/raw/google/takeout-XXXX.zip
+python yelp/parse_yelp_paste.py data/raw/yelp/yelp_*star*.txt
+python import_manual.py data/raw/yelp/yelp_parsed.csv --source yelp --clinic RPSD
+python reddit/reddit_collector.py                     # once Reddit approves the app
 python reputation_item.py summary                     # counts per source and clinic
 python reputation_item.py export                      # writes data/exports/
 ```
@@ -112,4 +124,4 @@ For RPSD's **full** review history, the clinic would need to grant access to the
 
 1. Find its place ID with a one-off name search, or with Google's Place ID Finder.
 2. Add an entry to `clinics.json` with `name`, `role` (`client` or `competitor`), and `google_place_id`.
-3. Run `python test_places.py`, then `python places_test.py`.
+3. Run `python google/test_places.py`, then `python google/places_test.py`.

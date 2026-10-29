@@ -12,7 +12,7 @@ Reviewer names are not printed.
 Setup:
   1. Put GOOGLE_PLACES_API_KEY=your_key in a .env file next to this script
   2. python -m pip install -r requirements.txt
-  3. python places_test.py
+  3. python google/places_test.py   (run from the repo root)
 """
 
 import json
@@ -21,11 +21,11 @@ import os
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CLINICS_FILE = os.path.join(HERE, "clinics.json")
+CLINICS_FILE = os.path.join(os.path.dirname(HERE), "clinics.json")  # repo root
 
 DETAILS_URL = "https://places.googleapis.com/v1/places/{place_id}"
 
