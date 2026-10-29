@@ -33,6 +33,10 @@ STAT_LINE = re.compile(
     r"^(\d[\d,]*\s+(friends?|reviews?|photos?|check-?ins?)|Elite\b.*)$", re.IGNORECASE)
 REVIEW_DATE = re.compile(r"^\d{1,2}/\d{1,2}/\d{2,4}$")
 REPLY_LINE = re.compile(r"publicly responded on", re.IGNORECASE)
+UPDATED_LINE = re.compile(r"^Updated review$", re.IGNORECASE)
+# Links/sections for an older version of the same review. The older text
+# isn't on the page, so these only mark where the current review ends.
+PREVIOUS_LINE = re.compile(r"^(See .+'s previous review|Previous review)$", re.IGNORECASE)
 RATING_IN_NAME = re.compile(r"(\d)\s*[-_ ]?star", re.IGNORECASE)
 
 # Dashboard text that can follow the last review when copying a whole page.
@@ -77,10 +81,16 @@ def parse_text(text):
     for k, (name_idx, date_idx) in enumerate(starts):
         end = starts[k + 1][0] if k + 1 < len(starts) else len(lines)
         body = lines[date_idx + 1:end]
+        updated = bool(body) and bool(UPDATED_LINE.match(body[0]))
+        if updated:
+            body = body[1:]
         replied = False
         for n, line in enumerate(body):
             if REPLY_LINE.search(line):
                 body, replied = body[:n], True
+                break
+            if PREVIOUS_LINE.match(line):
+                body = body[:n]
                 break
         if k + 1 == len(starts):          # last review: cut page footer
             for n, line in enumerate(body):
@@ -91,6 +101,7 @@ def parse_text(text):
             "posted_at": to_iso(lines[date_idx]),
             "text": "\n\n".join(body),
             "owner_replied": "yes" if replied else "",
+            "updated": updated,
         })
     return reviews
 
@@ -110,7 +121,11 @@ def main():
               + ("" if rating else "  (no star rating in file name; rating left blank)"))
         for r in reviews:
             r["rating"] = rating or ""
+            del r["updated"]
         rows += reviews
+        empty = sum(1 for r in reviews if not r["text"])
+        if empty:
+            print(f"  warning: {empty} review(s) came out with no text; check the paste")
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", newline="", encoding="utf-8") as fh:

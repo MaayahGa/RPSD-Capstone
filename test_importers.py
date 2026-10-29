@@ -163,6 +163,37 @@ def test_yelp_paste_parser():
     assert yp.rating_from_filename("yelp_page1.txt") is None
 
 
+def test_yelp_updated_and_previous_review_lines_dropped():
+    paste = """Fake Name C.
+161 friends
+250 reviews
+546 photos
+Elite 2026
+7/29/25
+Updated review
+
+Made-up updated review text.
+
+Fake Staff publicly responded on Dec 10, 2025 at 9:38 AM
+
+Made-up reply.
+
+See Fake's previous review
+Fake Name D.
+291 friends
+21 reviews
+10/27/23
+Updated review
+Made-up text with no reply.
+See Fake's previous review
+"""
+    reviews = yp.parse_text(paste)
+    assert [r["text"] for r in reviews] == ["Made-up updated review text.",
+                                             "Made-up text with no reply."]
+    assert [r["updated"] for r in reviews] == [True, True]
+    assert [r["owner_replied"] for r in reviews] == ["yes", ""]
+
+
 def test_reddit_comment_matching():
     patterns = rc.alias_patterns(CLINICS)
     comment = SimpleNamespace(
