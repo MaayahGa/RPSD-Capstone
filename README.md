@@ -13,6 +13,13 @@ sources only** (official APIs, not scraping) for the rest of the reputation pipe
 | `test_places.py` | Offline tests for the Places code (no API key or internet needed) |
 | `sample_place.json` | **Made-up** review data in Google's format, used by the tests |
 | `reddit_test.py` | Early test of searching Reddit for clinic mentions (PRAW) |
+| `reputation_item.py` | Shared record format, SQLite database (`data/reputation.db`), and CSV/JSON export |
+| `import_google_takeout.py` | Imports RPSD's **full** Google review history from a Google Takeout export |
+| `import_manual.py` | Imports hand-logged reviews/posts (Yelp, Reddit, FertilityIQ...) from a CSV |
+| `templates/manual_reviews_template.csv` | Blank template for `import_manual.py` |
+| `reddit_collector.py` | Saves Reddit posts **and comments** naming a clinic (needs approved API app) |
+| `test_importers.py` | Offline tests for the importers, all made-up data |
+| `source_inventory.md` | Status, method and limits for every source |
 | `requirements.txt` | Python packages the scripts need |
 | `.env.example` | Template for your API keys |
 
@@ -44,6 +51,42 @@ Live Google lookup for all clinics in `clinics.json`:
 ```
 python places_test.py
 ```
+
+## Collecting reviews into the database
+
+Everything ends up in `data/reputation.db` as `reputation_item` records. **`data/` is gitignored:**
+reviews contain real patients' health details, and this repo is public.
+
+```
+mkdir -p data/raw                                     # put downloads here
+python import_google_takeout.py data/raw/takeout-XXXX.zip
+python import_manual.py data/raw/yelp_rpsd.csv
+python reddit_collector.py                            # once Reddit approves the app
+python reputation_item.py summary                     # counts per source and clinic
+python reputation_item.py export                      # writes data/exports/
+```
+
+Re-running any importer only adds new items (duplicates are skipped by `id`).
+`export` writes `reputation_items_all_sources.csv/.json` plus one file per source.
+
+### Fields (same for every source)
+
+| Field | Meaning |
+| --- | --- |
+| `id` | `<source>_<platform id>`, or a content hash for hand-entered items |
+| `source` | `google`, `yelp`, `reddit`, ... |
+| `clinic` | Clinic name from `clinics.json` |
+| `posted_at` / `collected_at` | When it was posted / when we collected it |
+| `rating` | 1-5, blank for Reddit |
+| `title` | Reddit post title, blank otherwise |
+| `text` | Exactly what was written (blank for star-only Google reviews) |
+| `url` | Link to the post, or to the clinic's Google listing (Takeout has no per-review link) |
+| `engagement` | Reddit score; blank otherwise |
+| `owner_replied` | 1/0 whether the clinic replied publicly |
+| `collection_method` | `google_takeout`, `manual_entry`, `reddit_api` |
+| `insurance_period` | Export only: `before_2026` or `2026_onward` (clinic's insurance change in Jan 2026) |
+
+No reviewer names, usernames or profile links are ever stored.
 
 ## Google Places API setup
 

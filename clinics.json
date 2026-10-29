@@ -2,21 +2,25 @@
   {
     "name": "Reproductive Partners Fertility Center - San Diego (RPSD)",
     "role": "client",
-    "google_place_id": "ChIJcZx5qN4G3IARb5FonxOvvCI"
+    "google_place_id": "ChIJcZx5qN4G3IARb5FonxOvvCI",
+    "aliases": ["Reproductive Partners", "RPSD"]
   },
   {
     "name": "RMA San Diego",
     "role": "competitor",
-    "google_place_id": "ChIJoe5Rk2UH3IARcjdwi9ttPuk"
+    "google_place_id": "ChIJoe5Rk2UH3IARcjdwi9ttPuk",
+    "aliases": ["RMA San Diego"]
   },
   {
     "name": "San Diego Fertility Center",
     "role": "competitor",
-    "google_place_id": "ChIJP-BcyDgG3IARVIVSp7HEyxo"
+    "google_place_id": "ChIJP-BcyDgG3IARVIVSp7HEyxo",
+    "aliases": ["San Diego Fertility Center", "SDFC"]
   },
   {
     "name": "Shady Grove Fertility in Solana Beach",
     "role": "competitor",
-    "google_place_id": "ChIJUxDAuncJ3IARI-_EIU1CMj8"
+    "google_place_id": "ChIJUxDAuncJ3IARI-_EIU1CMj8",
+    "aliases": ["Shady Grove Solana Beach", "Shady Grove Fertility Solana Beach"]
   }
 ]

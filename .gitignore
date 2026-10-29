@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+
+# Collected reviews contain real patients' health details. Never commit.
+data/
+*.db
+takeout-*.zip
