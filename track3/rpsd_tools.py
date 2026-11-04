@@ -348,9 +348,54 @@ def collect():
                      f'usage={row.get("usage")}') if row['status'] == 'success' else row['error_message'][:300]
             print(f'  {q["id"]} trial {trial}: {row["status"]} · {extra}')
             time.sleep(2)
+    export_answers_csv()
     if not ALLOW_SPENDING:
         print(f'\nFree mode: {would_cost} paid call(s) would be sent. Nothing was sent. '
               'Set ALLOW_SPENDING = True in Settings to run them.' if would_cost else '\nNothing new to send.')
+
+def _tokens(usage):
+    """(input, output) tokens, whatever the provider calls them."""
+    u = usage or {}
+    return (u.get('input_tokens', u.get('promptTokenCount', '')),
+            u.get('output_tokens', u.get('candidatesTokenCount', '')))
+
+ANSWER_COLUMNS = ['Run ID', 'Tester', 'Provider', 'Model requested', 'Model returned', 'Prompt ID', 'Category',
+                  'Prompt type', 'Exact prompt', 'Trial', 'Status', 'Collected at (UTC)', 'Completed at (UTC)',
+                  'Answer', 'Citation URLs', 'Citation titles', 'Web searches', 'Search queries',
+                  'Input tokens', 'Output tokens', 'Error']
+
+def export_answers_csv(quiet=False):
+    """All collected API answers as one CSV (latest attempt per provider/question/trial). Free."""
+    rows = []
+    for provider in MODELS:
+        slots = {}
+        for r in read_jsonl(raw_path(provider)):
+            k = (r['prompt_id'], r['repeat'])
+            if k not in slots or slots[k].get('status') != 'success':
+                slots[k] = r
+        for r in sorted(slots.values(), key=lambda r: (r['prompt_id'], r['repeat'])):
+            links = r.get('source_link_details') or []
+            tin, tout = _tokens(r.get('usage'))
+            rows.append({
+                'Run ID': f"API-{provider}-{r['prompt_id']}-{r['repeat']}", 'Tester': r.get('tester', ''),
+                'Provider': provider, 'Model requested': r.get('model', ''), 'Model returned': r.get('model_returned', ''),
+                'Prompt ID': r['prompt_id'], 'Category': r.get('category', ''), 'Prompt type': r.get('prompt_type', ''),
+                'Exact prompt': r.get('prompt', ''), 'Trial': r['repeat'], 'Status': r.get('status', ''),
+                'Collected at (UTC)': r.get('collected_at', ''), 'Completed at (UTC)': r.get('completed_at', ''),
+                'Answer': r.get('answer') or '', 'Citation URLs': '\n'.join(l.get('url') or '' for l in links),
+                'Citation titles': '\n'.join(str(l.get('title') or '') for l in links),
+                'Web searches': r.get('search_count', ''), 'Search queries': '\n'.join(r.get('search_queries') or []),
+                'Input tokens': tin, 'Output tokens': tout, 'Error': r.get('error_message', '')})
+    if not rows:
+        return None
+    path = DATA / f'{TESTER}-{BATCH_ID}-answers.csv'
+    with path.open('w', encoding='utf-8-sig', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=ANSWER_COLUMNS); w.writeheader()
+        for row in rows:
+            w.writerow({k: _safe(v) for k, v in row.items()})
+    if not quiet:
+        print(f'Saved {len(rows)} collected answers → {path.name}')
+    return path
 
 def results_table():
     rows = []
@@ -452,7 +497,10 @@ def load_fact_sheet():
     snap = DATA / f'factsheet-snapshot-{FACT_VERSION}.json'
     snap.write_text(json.dumps({'fetched': datetime.now(timezone.utc).isoformat(), 'doc_id': FACT_DOC_ID,
                                 'version': FACT_VERSION, 'facts': facts}, ensure_ascii=False, indent=1), encoding='utf-8')
-    print(f'{len(facts)} fact-sheet rows · version {FACT_VERSION} · snapshot {snap.name}')
+    with (DATA / f'factsheet-snapshot-{FACT_VERSION}.csv').open('w', encoding='utf-8-sig', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=['id', 'section', 'category', 'fact', 'source', 'verified']); w.writeheader()
+        w.writerows(facts)
+    print(f'{len(facts)} fact-sheet rows · version {FACT_VERSION} · snapshot {snap.stem}.csv/.json')
     return pd.DataFrame(facts)[['id', 'section', 'category', 'fact']]
 
 def _load_sheet_tab(tab):
@@ -770,6 +818,7 @@ def _write(path, rows):
 
 def export_and_compare():
     """Save auto-labels and normalized hand labels as tracker CSVs; return the auto-vs-hand comparison table."""
+    export_answers_csv()
     stamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M')
     by_source = {}
     for item, row, _ in RESULTS:
