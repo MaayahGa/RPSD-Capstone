@@ -30,7 +30,6 @@ JUDGE_PROVIDER, JUDGE_MODEL = 'OpenAI', 'gpt-4.1'   # one fixed judge for every 
 SHEET_ID, SHEET_TABS, FACT_DOC_ID = '', {}, ''     # private: read from .env
 FACT_SHEET_FILE, SHEET_FILES = '', {}               # optional local copies (used by the offline test)
 LABEL_API_RESULTS, MAX_ANSWERS = True, None          # every tab in SHEET_TABS is labeled
-ACCURACY_REFERENCE_TABS = ['Audrey']                # tabs whose hand accuracy labels were made from the fact sheet
 ALLOW_SPENDING = False
 
 KEYS, MODEL_LISTS, ACCESS = {}, {}, {}           # keys live only in this Python session
@@ -841,21 +840,19 @@ def export_and_compare():
     for tab, rows in by_tab.items():
         path = DATA / f'handlabels-normalized-{tab}-{stamp}.csv'; _write(path, rows)
         print(f'Saved {len(rows)} normalized hand-labeled rows → {path.name}')
-    fields = ['RPSD mentioned', 'First mention order', 'Explicit recommendation rank', 'Accuracy assessment']
+    # Visibility labels only. Accuracy is decided by the fact sheet itself, not compared with hand labels.
+    fields = ['RPSD mentioned', 'First mention order', 'Explicit recommendation rank']
     recs = []
     for item, row, _ in RESULTS:
         hn = human.get(row['Run ID'])
         if not hn:
             continue
-        tab = item['source'].split(':')[1]
         hs = set(hn['Competitors mentioned'].split('; ')) - {''}
         auto = set(row['Competitors mentioned'].split('; ')) - {''}
         rec = {'Run ID': row['Run ID'], 'platform': row['AI platform'], 'prompt': row['Prompt ID'],
                'competitor overlap': round(len(hs & auto) / len(hs | auto), 2) if (hs | auto) else 1.0}
         for k in fields:
             rec[f'{k} (human)'], rec[f'{k} (auto)'] = str(hn.get(k, '')), str(row.get(k, ''))
-        if tab not in ACCURACY_REFERENCE_TABS:            # hand accuracy not made from the fact sheet: not a valid reference
-            rec['Accuracy assessment (human)'] = 'not compared (not fact-sheet based)'
         recs.append(rec)
     if not recs:
         print('No hand-labeled sheet rows among the labeled answers to compare.')
@@ -863,12 +860,8 @@ def export_and_compare():
     cmp = pd.DataFrame(recs)
     print(f'\nAuto vs normalized hand labels: {len(cmp)} rows')
     for k in fields:
-        sub = cmp[cmp[f'{k} (human)'] != 'not compared (not fact-sheet based)']
-        if sub.empty:
-            print(f'  {k}: not compared (no fact-sheet-based hand labels among these rows; see ACCURACY_REFERENCE_TABS)')
-            continue
-        agree = sub[f'{k} (human)'].str.lower() == sub[f'{k} (auto)'].str.lower()
-        print(f'  {k}: {agree.mean():.0%} agree (n={len(sub)})' + (f'  (disagree: {", ".join(sub.loc[~agree, "Run ID"])})' if (~agree).any() else ''))
+        agree = cmp[f'{k} (human)'].str.lower() == cmp[f'{k} (auto)'].str.lower()
+        print(f'  {k}: {agree.mean():.0%} agree (n={len(cmp)})' + (f'  (disagree: {", ".join(cmp.loc[~agree, "Run ID"])})' if (~agree).any() else ''))
     print(f"  Competitor list overlap (avg Jaccard): {cmp['competitor overlap'].mean():.2f}")
     path = DATA / f'autolabel-vs-human-{stamp}.csv'
     cmp.to_csv(path, index=False, encoding='utf-8-sig')
