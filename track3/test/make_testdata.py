@@ -114,21 +114,21 @@ def main():
                         answer, 'synthetic', *labels, '', ''])
     # one saved API answer
     q = P['P01']
-    raw = {'scan_id': 'sample-0001', 'run_id': 'sample-openai', 'tester': 'Test', 'prompt_id': 'P01', 'category': q['category'],
+    raw = {'scan_id': 'sample-0001', 'run_id': 'sample-openai', 'prompt_id': 'P01', 'category': q['category'],
            'prompt_type': q['prompt_type'], 'prompt': q['text'], 'engine': 'OpenAI', 'model': 'chat-latest', 'repeat': 1,
            'collected_at': '2026-01-01T00:00:00+00:00', 'collection_mode': 'api_web_search', 'search_setting': 'web_search_on',
            'synthetic': True, 'status': 'success', 'answer': A_API, 'model_returned': 'chat-latest',
            'sources_cited': ['https://www.fertilityclinicsandiego.com/'],
            'source_link_details': [{'url': 'https://www.fertilityclinicsandiego.com/', 'title': 'Sample'}]}
-    (SEED / 'Test-sample-openai-raw.jsonl').write_text(json.dumps(raw, ensure_ascii=False) + '\n', encoding='utf-8')
+    (SEED / 'sample-openai-raw.jsonl').write_text(json.dumps(raw, ensure_ascii=False) + '\n', encoding='utf-8')
 
     # produce the judge cache by running the real pipeline with the scripted judge
     work = T.REPO / 'data' / 'track3-test-build'
     shutil.rmtree(work, ignore_errors=True); shutil.copytree(SEED, work)
-    T.configure(DATA_DIR=work, TESTER='Test', BATCH_ID='sample', ALLOW_SPENDING=True,
+    T.configure(DATA_DIR=work, BATCH_ID='sample', ALLOW_SPENDING=True,
                 FACT_SHEET_FILE=str(OUT / 'fact_sheet_sample.html'),
                 SHEET_FILES={'Sample': str(OUT / 'tracker_sample.csv')}, SHEET_TABS={'Sample': ''},
-                LABEL_API_RESULTS=True, LABEL_SHEET_TABS=['Sample'], MAX_ANSWERS=None)
+                LABEL_API_RESULTS=True, MAX_ANSWERS=None)
     T.KEYS[T.JUDGE_PROVIDER] = 'not-used'
     T.judge_json = scripted_judge
     T.http_json = T.fetch_text = lambda *a, **k: (_ for _ in ()).throw(AssertionError('offline'))
