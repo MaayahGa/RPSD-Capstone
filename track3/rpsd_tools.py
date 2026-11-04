@@ -24,7 +24,7 @@ import rpsd_rules as R
 REPO = Path(__file__).resolve().parent.parent      # RPSD-Capstone/
 DATA_DIR = REPO / 'data' / 'track3'                 # gitignored (repo-wide data/ rule)
 DATA = DATA_DIR
-TESTER, BATCH_ID, TRIALS, SMOKE_TEST = 'Audrey', 'api-pilot-01', 3, False
+TESTER, BATCH_ID, TRIALS = 'Audrey', 'api-pilot-01', 3
 MODELS = {'OpenAI': 'chat-latest', 'Claude': 'claude-sonnet-5-5', 'Gemini': 'gemini-3.8-flash'}   # free-tier default of each app
 JUDGE_PROVIDER, JUDGE_MODEL = 'OpenAI', 'gpt-4.1'   # one fixed judge for every platform
 SHEET_ID, SHEET_TABS, FACT_DOC_ID = '', {}, ''     # private: read from .env
@@ -305,8 +305,6 @@ ASK = {'OpenAI': ask_openai, 'Claude': ask_claude, 'Gemini': ask_gemini}
 def collect():
     """Send each not-yet-saved question/trial to each READY provider. Already-saved slots are never re-sent."""
     plan = [(q, t) for q in R.QUESTIONS for t in range(1, TRIALS + 1)]
-    if SMOKE_TEST:
-        plan = plan[:1]
     ready = ready_providers()
     if not ready:
         print('No provider is READY. Run the keys and status cells first.')

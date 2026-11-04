@@ -75,7 +75,7 @@ def run_test():
 
 def configure_real(args):
     env = T.load_env()
-    T.configure(TESTER=args.tester, ALLOW_SPENDING=args.spend, SMOKE_TEST=args.smoke,
+    T.configure(TESTER=args.tester, ALLOW_SPENDING=args.spend,
                 SHEET_ID=env.get('RPSD_TRACKER_SHEET_ID', ''),
                 SHEET_TABS=T.sheet_tabs_from_env(env.get('RPSD_TRACKER_TAB_GIDS')),
                 FACT_DOC_ID=env.get('RPSD_FACT_SHEET_DOC_ID', ''),
@@ -95,7 +95,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('target', choices=['test', 'collect', 'label', 'export', 'all'])
     ap.add_argument('--spend', action='store_true', help='allow paid API calls (otherwise free mode)')
-    ap.add_argument('--smoke', action='store_true', help='collect: only P01 trial 1 per provider')
     ap.add_argument('--tester', default=T.TESTER, help='name used in result file names (default: %(default)s)')
     ap.add_argument('--tabs', default='Siya,Audrey', help='tracker tabs to label, comma-separated')
     ap.add_argument('--max', type=int, default=None, help='label at most N answers')
