@@ -65,9 +65,9 @@ python track3/run.py label --spend             # auto-label + fact-check (about 
 python track3/run.py export                    # tracker CSVs + comparison with hand labels (free)
 ```
 - **Without `--spend`, nothing paid is sent.** Each target reports what it *would* send. Saved answers and labels are cached in `data/track3/` and never paid for twice. Re-running resumes where it stopped.
-- `--tester NAME` names the result files (default `Audrey`), `--tabs Siya,Audrey` picks the sheet tabs to label, and `--max N` caps labeling.
+- Every tab listed in `RPSD_TRACKER_TAB_GIDS` (`.env`) is labeled. `--max N` caps labeling.
 - Outputs in `data/track3/` (all CSV, open in Excel or Google Sheets):
-  - `<tester>-<batch>-answers.csv`: every collected API answer, one row each (model, question, trial, time, full answer, citations, searches, tokens, status)
+  - `<batch>-answers.csv`: every collected API answer, one row each (model, question, trial, time, full answer, citations, searches, tokens, status)
   - `factsheet-snapshot-<version>.csv`: the numbered fact sheet (F01…) each check used
   - `autolabels-*.csv`: tracker columns L–S plus V (Numbered-list position), ready to paste into the sheet
   - `handlabels-normalized-*.csv`: existing hand labels converted to the standard values

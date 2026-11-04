@@ -24,12 +24,12 @@ import rpsd_rules as R
 REPO = Path(__file__).resolve().parent.parent      # RPSD-Capstone/
 DATA_DIR = REPO / 'data' / 'track3'                 # gitignored (repo-wide data/ rule)
 DATA = DATA_DIR
-TESTER, BATCH_ID, TRIALS = 'Audrey', 'api-pilot-01', 3
+BATCH_ID, TRIALS = 'api-pilot-01', 3
 MODELS = {'OpenAI': 'chat-latest', 'Claude': 'claude-sonnet-5-5', 'Gemini': 'gemini-3.8-flash'}   # free-tier default of each app
 JUDGE_PROVIDER, JUDGE_MODEL = 'OpenAI', 'gpt-4.1'   # one fixed judge for every platform
 SHEET_ID, SHEET_TABS, FACT_DOC_ID = '', {}, ''     # private: read from .env
 FACT_SHEET_FILE, SHEET_FILES = '', {}               # optional local copies (used by the offline test)
-LABEL_API_RESULTS, LABEL_SHEET_TABS, MAX_ANSWERS = True, [], None
+LABEL_API_RESULTS, MAX_ANSWERS = True, None          # every tab in SHEET_TABS is labeled
 ACCURACY_REFERENCE_TABS = ['Audrey']                # tabs whose hand accuracy labels were made from the fact sheet
 ALLOW_SPENDING = False
 
@@ -75,10 +75,10 @@ def sheet_tabs_from_env(value):
     return dict(part.split(':', 1) for part in (value or '').split(',') if ':' in part)
 
 def raw_path(provider):
-    return DATA / f'{TESTER}-{BATCH_ID}-{provider.lower()}-raw.jsonl'
+    return DATA / f'{BATCH_ID}-{provider.lower()}-raw.jsonl'
 
 def text_dir():
-    return DATA / f'{TESTER}-{BATCH_ID}-texts'
+    return DATA / f'{BATCH_ID}-texts'
 
 def cache_path():
     return DATA / 'autolabel-cache.jsonl'
@@ -318,7 +318,7 @@ def collect():
             would_cost += len(todo)
             continue
         for q, trial in todo:
-            row = {'scan_id': str(uuid.uuid4()), 'run_id': f'{BATCH_ID}-{provider.lower()}', 'tester': TESTER,
+            row = {'scan_id': str(uuid.uuid4()), 'run_id': f'{BATCH_ID}-{provider.lower()}',
                    'prompt_id': q['id'], 'category': q['category'], 'prompt_type': q['prompt_type'], 'prompt': q['text'],
                    'engine': provider, 'model': model, 'repeat': trial,
                    'collected_at': datetime.now(timezone.utc).isoformat(),
@@ -357,7 +357,7 @@ def _tokens(usage):
     return (u.get('input_tokens', u.get('promptTokenCount', '')),
             u.get('output_tokens', u.get('candidatesTokenCount', '')))
 
-ANSWER_COLUMNS = ['Run ID', 'Tester', 'Provider', 'Model requested', 'Model returned', 'Prompt ID', 'Category',
+ANSWER_COLUMNS = ['Run ID', 'Provider', 'Model requested', 'Model returned', 'Prompt ID', 'Category',
                   'Prompt type', 'Exact prompt', 'Trial', 'Status', 'Collected at (UTC)', 'Completed at (UTC)',
                   'Answer', 'Citation URLs', 'Citation titles', 'Sources retrieved', 'Web searches', 'Search queries',
                   'Input tokens', 'Output tokens', 'Error']
@@ -375,7 +375,7 @@ def export_answers_csv(quiet=False):
             links = r.get('source_link_details') or []
             tin, tout = _tokens(r.get('usage'))
             rows.append({
-                'Run ID': f"API-{provider}-{r['prompt_id']}-{r['repeat']}", 'Tester': r.get('tester', ''),
+                'Run ID': f"API-{provider}-{r['prompt_id']}-{r['repeat']}",
                 'Provider': provider, 'Model requested': r.get('model', ''), 'Model returned': r.get('model_returned', ''),
                 'Prompt ID': r['prompt_id'], 'Category': r.get('category', ''), 'Prompt type': r.get('prompt_type', ''),
                 'Exact prompt': r.get('prompt', ''), 'Trial': r['repeat'], 'Status': r.get('status', ''),
@@ -387,7 +387,7 @@ def export_answers_csv(quiet=False):
                 'Input tokens': tin, 'Output tokens': tout, 'Error': r.get('error_message', '')})
     if not rows:
         return None
-    path = DATA / f'{TESTER}-{BATCH_ID}-answers.csv'
+    path = DATA / f'{BATCH_ID}-answers.csv'
     with path.open('w', encoding='utf-8-sig', newline='') as f:
         w = csv.DictWriter(f, fieldnames=ANSWER_COLUMNS); w.writeheader()
         for row in rows:
@@ -526,7 +526,7 @@ def gather_items():
                     slots[(r['prompt_id'], r['repeat'])] = r
             for r in slots.values():
                 ITEMS.append({'source': 'api', 'human': None, 'base': {
-                    'Run ID': f"API-{provider}-{r['prompt_id']}-{r['repeat']}", 'Tester': r['tester'],
+                    'Run ID': f"API-{provider}-{r['prompt_id']}-{r['repeat']}", 'Tester': 'API',
                     'Prompt ID': r['prompt_id'], 'Category': r['category'], 'Prompt type': r['prompt_type'],
                     'Exact prompt': r['prompt'], 'AI platform': f"{provider} API ({r.get('model_returned') or r['model']}, web search)",
                     'Run number': r['repeat'], 'Status': 'Completed', 'Full response verbatim': r['answer'],
@@ -535,7 +535,7 @@ def gather_items():
                         'No inline citations; sources retrieved by web search:\n' + '\n'.join(l.get('url') or '' for l in r['sources_retrieved'])
                         if r.get('sources_retrieved') else 'No citation URLs returned by the API'),
                     '_cited_titles': ' '.join(str(l.get('title') or '') for l in (r.get('source_link_details') or []) + (r.get('sources_retrieved') or []))}})
-    for tab in LABEL_SHEET_TABS:
+    for tab in SHEET_TABS:
         for rec in _load_sheet_tab(tab):
             ITEMS.append({'source': f'sheet:{tab}', 'base': {k: rec.get(k, '') for k in R.TRACKER_HEADERS},
                           'human': {k: rec.get(k, '') for k in R.TRACKER_HEADERS[11:19]}})

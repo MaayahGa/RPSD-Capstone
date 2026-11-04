@@ -29,10 +29,10 @@ def run_test():
 
     def offline(*a, **k):
         raise AssertionError('The test tried to use the network; it must run offline.')
-    T.configure(DATA_DIR=out, TESTER='Test', BATCH_ID='sample', ALLOW_SPENDING=False,
+    T.configure(DATA_DIR=out, BATCH_ID='sample', ALLOW_SPENDING=False,
                 FACT_SHEET_FILE=str(TESTDATA / 'fact_sheet_sample.html'),
                 SHEET_FILES={'Sample': str(TESTDATA / 'tracker_sample.csv')}, SHEET_TABS={'Sample': ''},
-                LABEL_API_RESULTS=True, LABEL_SHEET_TABS=['Sample'], MAX_ANSWERS=None,
+                LABEL_API_RESULTS=True, MAX_ANSWERS=None,
                 ACCURACY_REFERENCE_TABS=['Sample'])
     T.http_json = T.fetch_text = offline
 
@@ -59,7 +59,7 @@ def run_test():
         ('claim with a made-up quote dropped', '1 claim(s) dropped' in rows['T03']['Notes / deviations']),
         ('star rating = not documented', rows['T03']['Accuracy assessment'] == 'Supported + not documented'),
         ('"Best overall" keeps explicit rank 1', rows['API-OpenAI-P01-1']['Explicit recommendation rank'] == 1),
-        ('collected answers exported as CSV', (out / 'Test-sample-answers.csv').exists()),
+        ('collected answers exported as CSV', (out / 'sample-answers.csv').exists()),
         ('fact sheet exported as CSV', any(out.glob('factsheet-snapshot-*.csv'))),
     ]
     print('\n== checks')
@@ -75,11 +75,11 @@ def run_test():
 
 def configure_real(args):
     env = T.load_env()
-    T.configure(TESTER=args.tester, ALLOW_SPENDING=args.spend,
+    T.configure(ALLOW_SPENDING=args.spend,
                 SHEET_ID=env.get('RPSD_TRACKER_SHEET_ID', ''),
                 SHEET_TABS=T.sheet_tabs_from_env(env.get('RPSD_TRACKER_TAB_GIDS')),
                 FACT_DOC_ID=env.get('RPSD_FACT_SHEET_DOC_ID', ''),
-                LABEL_SHEET_TABS=[t for t in args.tabs.split(',') if t], MAX_ANSWERS=args.max)
+                MAX_ANSWERS=args.max)
     if args.target in ('collect', 'label', 'all'):
         T.keys_from_env(env)
         if not T.KEYS:
@@ -95,8 +95,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('target', choices=['test', 'collect', 'label', 'export', 'all'])
     ap.add_argument('--spend', action='store_true', help='allow paid API calls (otherwise free mode)')
-    ap.add_argument('--tester', default=T.TESTER, help='name used in result file names (default: %(default)s)')
-    ap.add_argument('--tabs', default='Siya,Audrey', help='tracker tabs to label, comma-separated')
     ap.add_argument('--max', type=int, default=None, help='label at most N answers')
     args = ap.parse_args()
 
