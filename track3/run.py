@@ -32,7 +32,8 @@ def run_test():
     T.configure(DATA_DIR=out, TESTER='Test', BATCH_ID='sample', ALLOW_SPENDING=False,
                 FACT_SHEET_FILE=str(TESTDATA / 'fact_sheet_sample.html'),
                 SHEET_FILES={'Sample': str(TESTDATA / 'tracker_sample.csv')}, SHEET_TABS={'Sample': ''},
-                LABEL_API_RESULTS=True, LABEL_SHEET_TABS=['Sample'], MAX_ANSWERS=None)
+                LABEL_API_RESULTS=True, LABEL_SHEET_TABS=['Sample'], MAX_ANSWERS=None,
+                ACCURACY_REFERENCE_TABS=['Sample'])
     T.http_json = T.fetch_text = offline
 
     print('== collect (no keys, so nothing is sent)'); T.collect()
