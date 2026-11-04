@@ -361,7 +361,7 @@ def _tokens(usage):
 
 ANSWER_COLUMNS = ['Run ID', 'Tester', 'Provider', 'Model requested', 'Model returned', 'Prompt ID', 'Category',
                   'Prompt type', 'Exact prompt', 'Trial', 'Status', 'Collected at (UTC)', 'Completed at (UTC)',
-                  'Answer', 'Citation URLs', 'Citation titles', 'Web searches', 'Search queries',
+                  'Answer', 'Citation URLs', 'Citation titles', 'Sources retrieved', 'Web searches', 'Search queries',
                   'Input tokens', 'Output tokens', 'Error']
 
 def export_answers_csv(quiet=False):
@@ -384,6 +384,7 @@ def export_answers_csv(quiet=False):
                 'Collected at (UTC)': r.get('collected_at', ''), 'Completed at (UTC)': r.get('completed_at', ''),
                 'Answer': r.get('answer') or '', 'Citation URLs': '\n'.join(l.get('url') or '' for l in links),
                 'Citation titles': '\n'.join(str(l.get('title') or '') for l in links),
+                'Sources retrieved': '\n'.join(l.get('url') or '' for l in (r.get('sources_retrieved') or [])),
                 'Web searches': r.get('search_count', ''), 'Search queries': '\n'.join(r.get('search_queries') or []),
                 'Input tokens': tin, 'Output tokens': tout, 'Error': r.get('error_message', '')})
     if not rows:
@@ -532,8 +533,10 @@ def gather_items():
                     'Exact prompt': r['prompt'], 'AI platform': f"{provider} API ({r.get('model_returned') or r['model']}, web search)",
                     'Run number': r['repeat'], 'Status': 'Completed', 'Full response verbatim': r['answer'],
                     'Raw response / screenshot link': str(text_dir() / Path(r['raw_text_path']).name) if r.get('raw_text_path') else '',
-                    'Citation URLs': '\n'.join(r.get('sources_cited') or []) or 'No citation URLs returned by the API',
-                    '_cited_titles': ' '.join(str(l.get('title') or '') for l in (r.get('source_link_details') or []))}})
+                    'Citation URLs': '\n'.join(r.get('sources_cited') or []) or (
+                        'No inline citations; sources retrieved by web search:\n' + '\n'.join(l.get('url') or '' for l in r['sources_retrieved'])
+                        if r.get('sources_retrieved') else 'No citation URLs returned by the API'),
+                    '_cited_titles': ' '.join(str(l.get('title') or '') for l in (r.get('source_link_details') or []) + (r.get('sources_retrieved') or []))}})
     for tab in LABEL_SHEET_TABS:
         for rec in _load_sheet_tab(tab):
             ITEMS.append({'source': f'sheet:{tab}', 'base': {k: rec.get(k, '') for k in R.TRACKER_HEADERS},
