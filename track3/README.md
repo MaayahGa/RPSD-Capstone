@@ -43,7 +43,7 @@ This runs the full pipeline offline on a synthetic sample and ends with `11/11 c
 | Labels, fact-checks, exports | Produced by `run.py label` / `export` | n/a | `data/track3/` |
 
 Setup for real runs:
-1. `cp .env.example .env` in the repo root, then fill in the three `RPSD_*` Google IDs and the API keys you have (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`). `.env` is gitignored, so **never commit it**.
+1. `cp track3/.env.example track3/.env`, then fill in the three `RPSD_*` Google IDs and the API keys you have (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`). `track3/.env` is gitignored, so **never commit it**.
 2. `data/` is gitignored. The project's real answers and labels are not published, so without access you can only run the synthetic test (section 1).
 
 ## 4. Reproducing the results
@@ -65,7 +65,7 @@ python track3/run.py label --spend             # auto-label + fact-check (about 
 python track3/run.py export                    # tracker CSVs + visibility-label comparison with hand labels (free)
 ```
 - **Without `--spend`, nothing paid is sent.** Each target reports what it *would* send. Saved answers and labels are cached in `data/track3/` and never paid for twice. Re-running resumes where it stopped.
-- Every tab listed in `RPSD_TRACKER_TAB_GIDS` (`.env`) is labeled. `--max N` caps labeling.
+- Every tab listed in `RPSD_TRACKER_TAB_GIDS` (`track3/.env`) is labeled. `--max N` caps labeling.
 - Outputs in `data/track3/` (all CSV, open in Excel or Google Sheets):
   - `<batch>-answers.csv`: every collected API answer, one row each (model, question, trial, time, full answer, citations, searches, tokens, status)
   - `factsheet-snapshot-<version>.csv`: the numbered fact sheet (F01…) each check used

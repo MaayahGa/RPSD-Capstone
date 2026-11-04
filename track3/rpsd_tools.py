@@ -58,8 +58,8 @@ class NeedsSpending(Exception):
 
 
 def load_env(path=None):
-    """Read KEY=value lines from the repo's .env (gitignored). Private IDs live there, not in the code."""
-    path = Path(path or REPO / '.env')
+    """Read KEY=value lines from track3/.env (gitignored). Private IDs live there, not in the code."""
+    path = Path(path or Path(__file__).resolve().parent / '.env')
     env = {}
     if path.exists():
         for line in path.read_text(encoding='utf-8').splitlines():
