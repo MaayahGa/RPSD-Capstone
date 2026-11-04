@@ -799,14 +799,15 @@ def run_labels():
             RESULTS.append((item, row, judgments))
             print(f"{n}/{len(todo)} {rid}: {row['RPSD mentioned']} · order {row['First mention order'] or '-'} · {row['Accuracy assessment']}")
         except NeedsSpending as exc:
-            SKIPPED.append(rid)
+            SKIPPED.append((rid, 2 if exc.args[0] == 'label' else 1))   # missing label -> label + check
         except Exception as exc:
             FAILED.append((rid, str(exc)))
             print(f'{n}/{len(todo)} {rid}: FAILED · {str(exc)[:300]}')
     print(f'\nLabeled {len(RESULTS)} (from cache or new), failed {len(FAILED)}, not attempted {len(ITEMS) - len(todo)}.')
     if SKIPPED:
-        print(f'Free mode: {len(SKIPPED)} answer(s) need new judge calls (about {2 * len(SKIPPED)} calls) and were skipped: '
-              f'{", ".join(SKIPPED[:10])}{" …" if len(SKIPPED) > 10 else ""}. Set ALLOW_SPENDING = True to run them.')
+        ids, n = [r for r, _ in SKIPPED], sum(c for _, c in SKIPPED)
+        print(f'Free mode: {len(ids)} answer(s) need new judge calls (about {n} calls) and were skipped: '
+              f'{", ".join(ids[:10])}{" …" if len(ids) > 10 else ""}. Set ALLOW_SPENDING = True to run them.')
 
 # ---------------------------------------------------------------- 8 · export + compare (free)
 def _safe(v):
