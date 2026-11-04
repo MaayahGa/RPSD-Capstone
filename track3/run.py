@@ -58,6 +58,8 @@ def run_test():
         ('claim with a made-up quote dropped', '1 claim(s) dropped' in rows['T03']['Notes / deviations']),
         ('star rating = not documented', rows['T03']['Accuracy assessment'] == 'Supported + not documented'),
         ('"Best overall" keeps explicit rank 1', rows['API-OpenAI-P01-1']['Explicit recommendation rank'] == 1),
+        ('collected answers exported as CSV', (out / 'Test-sample-answers.csv').exists()),
+        ('fact sheet exported as CSV', any(out.glob('factsheet-snapshot-*.csv'))),
     ]
     print('\n== checks')
     for name, ok in checks:

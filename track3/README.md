@@ -67,10 +67,13 @@ python track3/run.py export                    # tracker CSVs + comparison with 
 ```
 - **Without `--spend`, nothing paid is sent.** Each target reports what it *would* send. Saved answers and labels are cached in `data/track3/` and never paid for twice. Re-running resumes where it stopped.
 - `--tester NAME` names the result files (default `Audrey`), `--tabs Siya,Audrey` picks the sheet tabs to label, and `--max N` caps labeling.
-- Outputs in `data/track3/`:
+- Outputs in `data/track3/` (all CSV, open in Excel or Google Sheets):
+  - `<tester>-<batch>-answers.csv`: every collected API answer, one row each (model, question, trial, time, full answer, citations, searches, tokens, status)
+  - `factsheet-snapshot-<version>.csv`: the numbered fact sheet (F01…) each check used
   - `autolabels-*.csv`: tracker columns L–S plus V (Numbered-list position), ready to paste into the sheet
   - `handlabels-normalized-*.csv`: existing hand labels converted to the standard values
   - `autolabel-vs-human-*.csv`: agreement between the auto-labels and the hand labels
+- Internal files (don't edit): `*-raw.jsonl` holds each provider's full raw response (used to resume runs), and `autolabel-cache.jsonl` holds saved judge results (prevents paying twice).
 - The notebook `track3/RPSD_Pilot.ipynb` runs the same steps interactively. Its money switch is `ALLOW_SPENDING`.
 
 ## What to edit
