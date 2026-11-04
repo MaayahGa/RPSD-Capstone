@@ -60,7 +60,6 @@ Then `run.py label` labels these rows together with the API answers.
 
 ### API runs and labeling
 ```
-python track3/run.py collect --smoke --spend   # 1 call per provider: check keys and output
 python track3/run.py collect --spend           # all 6 questions × 3 trials per provider
 python track3/run.py label --spend             # auto-label + fact-check (about 2 judge calls per answer)
 python track3/run.py export                    # tracker CSVs + comparison with hand labels (free)
