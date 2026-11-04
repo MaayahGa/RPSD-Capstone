@@ -8,7 +8,7 @@
     python track3/run.py all     [--spend]    # collect, label, export
 
 Without --spend every target is free: paid steps only report what they would send.
-Real runs need RPSD-Capstone/.env (see .env.example). Results go to data/track3/ (gitignored).
+Real runs need track3/.env (copy track3/.env.example). Results go to data/track3/ (gitignored).
 """
 import argparse, shutil, sys
 from pathlib import Path
@@ -87,7 +87,7 @@ def configure_real(args):
     T.status()
     missing = [n for n, v in [('RPSD_TRACKER_SHEET_ID', T.SHEET_ID), ('RPSD_FACT_SHEET_DOC_ID', T.FACT_DOC_ID)] if not v]
     if missing and args.target in ('label', 'export', 'all'):
-        sys.exit(f'Missing {", ".join(missing)} in RPSD-Capstone/.env (copy .env.example).')
+        sys.exit(f'Missing {", ".join(missing)} in track3/.env (copy track3/.env.example).')
 
 
 def main():
