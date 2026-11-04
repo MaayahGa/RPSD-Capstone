@@ -1,6 +1,10 @@
 # Track 3: What AI assistants say about RPSD
 
-Part of **Report B** (Track 3 + Tracks 2/4). We ask ChatGPT, Claude and Gemini (through their APIs, with web search on) the same 6 patient questions, repeated in 3 separate trials. Each answer is then labeled for RPSD's visibility (mentioned? in what position? next to which competitors?), and every claim about RPSD is checked against the clinic's fact sheet.
+Part of **Report B** (Track 3 + Tracks 2/4). We ask AI assistants the same 6 patient questions, 3 separate trials each, in two ways:
+- **Manual browser runs:** each tester types the questions into the AI websites (ChatGPT, Claude, Gemini, Grok, Microsoft Copilot), using a fresh logged-out incognito session per run, and pastes the full answer into the tracker sheet.
+- **API runs:** `run.py collect` sends the same questions to the OpenAI, Anthropic and Gemini APIs, with web search on.
+
+Every answer, from either source, is then labeled for RPSD's visibility (mentioned? in what position? next to which competitors?), and every claim about RPSD is checked against the clinic's fact sheet.
 
 ```
 track3/
@@ -34,7 +38,7 @@ This runs the full pipeline offline on a synthetic sample and ends with `11/11 c
 | Data | Where it comes from | Access | Stored in |
 |---|---|---|---|
 | AI answers | Collected by `run.py collect` from the OpenAI, Anthropic and Google Gemini APIs | Your own API keys, from each provider's developer console (the team uses the clinic's Track 3 project/workspace) | `data/track3/<tester>-<batch>-<provider>-raw.jsonl` |
-| Browser answers + hand labels | "Pilot Testing 1" Google Sheet (one tab per tester) | **Private.** Ask the team for the sheet ID | read live, never copied into the repo |
+| Manual browser answers + hand labels | Collected by hand (see top) into the "Pilot Testing 1" Google Sheet, one tab per tester | **Private.** Ask the team for the sheet ID | read live, never copied into the repo |
 | RPSD fact sheet (ground truth) | Google Doc maintained with the clinic | **Private** (it contains clinic-internal notes). Ask the team | snapshot in `data/track3/factsheet-snapshot-<version>.json` |
 | Labels, fact-checks, exports | Produced by `run.py label` / `export` | n/a | `data/track3/` |
 
@@ -43,6 +47,18 @@ Setup for real runs:
 2. `data/` is gitignored. The project's real answers and labels are not published, so without access you can only run the synthetic test (section 1).
 
 ## 4. Reproducing the results
+
+### Manual browser runs (by hand)
+Each tester collects 6 questions × 5 platforms × 3 trials = 90 answers into their own tab of the tracker sheet:
+1. Use the exact wording in `QUESTIONS` (`track3/rpsd_rules.py`). Freeze it before collecting.
+2. Platforms: ChatGPT, Claude, Gemini, Grok and Microsoft Copilot (the top five AI chatbots by U.S. desktop visitors, Comscore, March 2026).
+3. Use one fresh chat in a new incognito window per run, and close all incognito windows between runs. Stay logged out where possible. If a platform requires login, record the study account and its personalization settings.
+4. Record the UTC time, the model shown (or "Unknown"), the search mode and the browser/session in the row.
+5. Paste the full answer unchanged into *Full response verbatim*, along with any citation URLs. Answers longer than 32,767 characters (a Google Sheets cell's limit) go in a text file linked from the row.
+
+Then `run.py label` labels these rows together with the API answers.
+
+### API runs and labeling
 ```
 python track3/run.py collect --smoke --spend   # 1 call per provider: check keys and output
 python track3/run.py collect --spend           # all 6 questions × 3 trials per provider
@@ -67,9 +83,8 @@ python track3/run.py export                    # tracker CSVs + comparison with 
 | Models / judge | `MODELS`, `JUDGE_MODEL` at the top of `rpsd_tools.py` (and step 1 of the notebook) |
 
 ## Method notes
-- **API vs apps:** these are API results and may differ from the consumer apps. No user location is sent.
-- **Models:** each provider's everyday free-tier default (ChatGPT `chat-latest`, Claude Sonnet, Gemini Flash). The exact model version is recorded with every answer.
+- **API models:** each provider's everyday free-tier default (ChatGPT `chat-latest`, Claude Sonnet, Gemini Flash). The exact model version is recorded with every answer.
 - **Fact-checking:** claims are checked against the fact sheet only. "Not documented" means the claim can't be confirmed, not that it's false.
 - **Judge:** one fixed judge model (`gpt-4.1`) labels every platform's answers. Auto-labels are drafts for human review, especially *needs qualification* and *contradicted*.
 - **Explicit rank** is recorded only when the AI itself ranks ("best overall", "#1 pick"). A plain numbered list goes in *Numbered-list position* instead.
-- **Browser runs:** logged-out ChatGPT runs are collected separately with a Playwright notebook and pasted into the tracker sheet. `label` processes them.
+- **Manual vs API answers:** manual browser answers show what a logged-out user sees on each website. API answers are easier to repeat but may differ from the websites, and no user location is sent with them. Both are labeled with the same rules, and the `AI platform` column says which is which.

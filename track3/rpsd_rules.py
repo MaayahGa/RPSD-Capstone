@@ -5,7 +5,7 @@ If you change LABEL_SYSTEM, LABEL_SCHEMA, CHECK_SYSTEM or CHECK_SCHEMA, also bum
 otherwise cached labels made with the old rules are reused.
 """
 
-# ---- Questions (same wording as the ChatGPT browser pilot) ----
+# ---- Questions (same wording as the manual browser runs in the tracker sheet) ----
 
 QUESTIONS = [
     {'id': 'P01', 'category': 'General discovery',  'prompt_type': 'Unbranded', 'text': 'What are the best fertility clinics in San Diego?'},
