@@ -62,7 +62,7 @@ Then `run.py label` labels these rows together with the API answers.
 ```
 python track3/run.py collect --spend           # all 6 questions × 3 trials per provider
 python track3/run.py label --spend             # auto-label + fact-check (about 2 judge calls per answer)
-python track3/run.py export                    # tracker CSVs + comparison with hand labels (free)
+python track3/run.py export                    # tracker CSVs + visibility-label comparison with hand labels (free)
 ```
 - **Without `--spend`, nothing paid is sent.** Each target reports what it *would* send. Saved answers and labels are cached in `data/track3/` and never paid for twice. Re-running resumes where it stopped.
 - Every tab listed in `RPSD_TRACKER_TAB_GIDS` (`.env`) is labeled. `--max N` caps labeling.
@@ -71,7 +71,7 @@ python track3/run.py export                    # tracker CSVs + comparison with 
   - `factsheet-snapshot-<version>.csv`: the numbered fact sheet (F01…) each check used
   - `autolabels-*.csv`: tracker columns L–S plus V (Numbered-list position), ready to paste into the sheet
   - `handlabels-normalized-*.csv`: existing hand labels converted to the standard values
-  - `autolabel-vs-human-*.csv`: agreement between the auto-labels and the hand labels
+  - `autolabel-vs-human-*.csv`: agreement with the hand labels on the visibility labels (mentioned, order, rank, competitors). Accuracy isn't compared: the fact sheet is the reference for it.
 - Internal files (don't edit): `*-raw.jsonl` holds each provider's full raw response (used to resume runs), and `autolabel-cache.jsonl` holds saved judge results (prevents paying twice).
 - The notebook `track3/RPSD_Pilot.ipynb` runs the same steps interactively. Its money switch is `ALLOW_SPENDING`.
 
