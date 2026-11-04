@@ -1,0 +1,22 @@
+Pilot Testing 1 — SYNTHETIC SAMPLE (made up for the offline test)
+""
+""
+""
+""
+""
+""
+Run ID,Tester,Prompt ID,Category,Prompt type,Exact prompt,AI platform,Run number,Status,Full response verbatim,Raw response / screenshot link,RPSD mentioned,First mention order,Explicit recommendation rank,Competitors mentioned,RPSD snippet + surrounding context,RPSD factual claims,Accuracy assessment,Evidence / fact-sheet reference,Citation URLs,Notes / deviations
+T01,Test,P01,General discovery,Unbranded,What are the best fertility clinics in San Diego?,ChatGPT,1,Completed,"Here are some San Diego fertility clinics to compare. This is not a definitive ranking.
+
+## 1. San Diego Fertility Center (SDFC)
+Large IVF program in Del Mar.
+
+## 2. Reproductive Partners Fertility Center – San Diego
+Located in La Jolla. Offers IVF and egg freezing, and offers donor egg programs.
+
+## 3. Hanabusa IVF
+Known for minimal-stimulation IVF.",synthetic,Yes,2,Not explicitly ranked — list/mention order only,SDFC; Hanabusa IVF,Reproductive Partners … La Jolla,La Jolla; IVF; egg freezing; donor eggs,Needs qualification — donation/surrogacy arranged externally,Synthetic.,,
+T02,Test,P02,IVF,Unbranded,What are the best IVF clinics in San Diego?,Claude,1,Completed,"Two well-known IVF options are San Diego Fertility Center and RMA San Diego / Pearl.
+Compare their published success rates for your age group.",synthetic,No,N/A — RPSD absent,N/A — RPSD absent,San Diego Fertility Center; RMA San Diego / Pearl,N/A,N/A,No RPSD claims,Synthetic.,,
+T03,Test,P06,Trust / reputation,Branded,What is Reproductive Partners Fertility Center in San Diego known for?,Gemini,1,Completed,"Reproductive Partners Fertility Center – San Diego (RPSD) is known for its focus on single-embryo transfer.
+It also has 4.8 stars on Google.",synthetic,Yes,1,N/A — branded description; no comparative recommendation,None named,RPSD is known for…,eSET; 4.8 stars,Supported + not documented,Synthetic.,,

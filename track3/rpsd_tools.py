@@ -24,11 +24,12 @@ import rpsd_rules as R
 REPO = Path(__file__).resolve().parent.parent      # RPSD-Capstone/
 DATA_DIR = REPO / 'data' / 'track3'                 # gitignored (repo-wide data/ rule)
 DATA = DATA_DIR
-TESTER, BATCH_ID, TRIALS, SMOKE_TEST = 'Audrey', 'api-pilot-01', 3, True
-MODELS = {'OpenAI': '', 'Claude': '', 'Gemini': ''}
-JUDGE_PROVIDER, JUDGE_MODEL = 'OpenAI', ''
-SHEET_ID, SHEET_TABS, FACT_DOC_ID = '', {}, ''
-LABEL_API_RESULTS, LABEL_SHEET_TABS, MAX_ANSWERS = True, [], 3
+TESTER, BATCH_ID, TRIALS, SMOKE_TEST = 'Audrey', 'api-pilot-01', 3, False
+MODELS = {'OpenAI': 'chat-latest', 'Claude': 'claude-sonnet-5-5', 'Gemini': 'gemini-3.8-flash'}   # free-tier default of each app
+JUDGE_PROVIDER, JUDGE_MODEL = 'OpenAI', 'gpt-4.1'   # one fixed judge for every platform
+SHEET_ID, SHEET_TABS, FACT_DOC_ID = '', {}, ''     # private: read from .env
+FACT_SHEET_FILE, SHEET_FILES = '', {}               # optional local copies (used by the offline test)
+LABEL_API_RESULTS, LABEL_SHEET_TABS, MAX_ANSWERS = True, [], None
 ALLOW_SPENDING = False
 
 KEYS, MODEL_LISTS, ACCESS = {}, {}, {}           # keys live only in this Python session
@@ -187,6 +188,25 @@ def enter_keys(show_models=False):
             ACCESS[provider] = 'Check failed'
             print(f'{provider}: {str(exc).replace(key, "[REDACTED]")}')
             print('  Check that this key belongs to the clinic Track 3 project/workspace.')
+        finally:
+            key = None
+
+ENV_KEY_NAMES = {'OpenAI': 'OPENAI_API_KEY', 'Claude': 'ANTHROPIC_API_KEY', 'Gemini': 'GEMINI_API_KEY'}
+
+def keys_from_env(env):
+    """Command-line use: take API keys from .env / environment variables (checked by listing models, free)."""
+    import os
+    for provider, name in ENV_KEY_NAMES.items():
+        key = (env.get(name) or os.environ.get(name) or '').strip()
+        if not key:
+            continue
+        try:
+            MODEL_LISTS[provider] = sorted(_LISTERS[provider](key))
+            KEYS[provider] = key
+            ACCESS[provider] = f'Connected: {len(MODEL_LISTS[provider])} models listed'
+        except Exception as exc:
+            ACCESS[provider] = 'Check failed'
+            print(f'{provider}: key in {name} failed: {str(exc).replace(key, "[REDACTED]")}')
         finally:
             key = None
 
@@ -397,7 +417,9 @@ class _DocParser(HTMLParser):
 def load_fact_sheet():
     """Read the fact sheet Google Doc into numbered facts F01..; saves a versioned snapshot."""
     global FACTS, FACT_TEXT, FACT_VERSION, FACT_FETCHED, FACT_IDS
-    p = _DocParser(); p.feed(fetch_text(f'https://docs.google.com/document/d/{FACT_DOC_ID}/export?format=html'))
+    html = (Path(FACT_SHEET_FILE).read_text(encoding='utf-8') if FACT_SHEET_FILE
+            else fetch_text(f'https://docs.google.com/document/d/{FACT_DOC_ID}/export?format=html'))
+    p = _DocParser(); p.feed(html)
     facts, section, n = [], 'General', 0
     for kind, content in p.items:
         if kind == 'text':
@@ -433,8 +455,9 @@ def load_fact_sheet():
     return pd.DataFrame(facts)[['id', 'section', 'category', 'fact']]
 
 def _load_sheet_tab(tab):
-    rows = list(csv.reader(io.StringIO(fetch_text(
-        f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={SHEET_TABS[tab]}'))))
+    text = (Path(SHEET_FILES[tab]).read_text(encoding='utf-8') if tab in SHEET_FILES
+            else fetch_text(f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={SHEET_TABS[tab]}'))
+    rows = list(csv.reader(io.StringIO(text)))
     h = next(i for i, r in enumerate(rows) if 'Run ID' in r and 'Full response verbatim' in r)
     header = rows[h]
     out = []
