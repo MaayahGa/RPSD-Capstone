@@ -4,7 +4,7 @@ Everything here is MADE UP: four short fake AI answers, fake hand labels, and sc
 (written by hand below, not produced by a real model). It lets `python track3/run.py test` exercise
 the whole pipeline offline and for free.
 
-Re-run this after changing RULES_VERSION, the labeling schemas, or the judge model:
+Re-run this after changing RULES_VERSION / CHECK_RULES_VERSION, the labeling schemas, or the judge model:
     python track3/test/make_testdata.py
 """
 import csv, json, shutil, sys
@@ -25,7 +25,7 @@ A_T01 = """Here are some San Diego fertility clinics to compare. This is not a d
 Large IVF program in Del Mar.
 
 ## 2. Reproductive Partners Fertility Center – San Diego
-Located in La Jolla. Offers IVF and egg freezing, and offers donor egg programs.
+Located in La Jolla and part of UC San Diego Health. Offers IVF and egg freezing, and offers donor egg programs.
 
 ## 3. Hanabusa IVF
 Known for minimal-stimulation IVF."""
@@ -63,7 +63,8 @@ LABELS = {
                              {'name': 'Hanabusa IVF', 'is_rpsd': False}],
         'rpsd_claims': [{'claim': 'Located in La Jolla', 'quote': 'Located in La Jolla.'},
                         {'claim': 'Offers IVF and egg freezing', 'quote': 'Offers IVF and egg freezing'},
-                        {'claim': 'Offers donor egg programs', 'quote': 'offers donor egg programs'}],
+                        {'claim': 'Offers donor egg programs', 'quote': 'offers donor egg programs'},
+                        {'claim': 'Part of UC San Diego Health', 'quote': 'part of UC San Diego Health'}],
         'identity_note': ''},
     'Two well-known IVF options': {'rpsd_mentioned': 'No', 'explicit_recommendation_rank': 0, 'rpsd_claims': [], 'identity_note': '',
         'clinics_in_order': [{'name': 'San Diego Fertility Center', 'is_rpsd': False},
@@ -82,7 +83,8 @@ LABELS = {
 CHECKS = {  # claim text -> (verdict, fact ids, explanation)
     'Located in La Jolla': ('supported', ['F02'], ''),
     'Offers IVF and egg freezing': ('supported', ['F04', 'F05', 'F99'], ''),          # F99 is invented -> removed
-    'Offers donor egg programs': ('needs_qualification', ['F06'], 'Egg donation is arranged externally with referral.'),
+    'Offers donor egg programs': ('supported', ['F06'], ''),                       # lenient donor rule (check-v3)
+    'Part of UC San Diego Health': ('needs_qualification', [], 'The fact sheet describes a relationship, not UCSD ownership.'),
     'Focuses on single-embryo transfer': ('supported', ['F07'], ''),
     'Has 4.8 stars on Google': ('not_documented', [], 'The fact sheet has no ratings.'),
 }

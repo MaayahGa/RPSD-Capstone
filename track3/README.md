@@ -80,7 +80,8 @@ python track3/run.py export                    # tracker CSVs + comparison with 
 | To change… | Edit |
 |---|---|
 | Questions | `QUESTIONS` in `rpsd_rules.py` |
-| Labeling / fact-check instructions | `LABEL_SYSTEM` / `CHECK_SYSTEM`, then bump `RULES_VERSION` and run `python track3/test/make_testdata.py` |
+| Labeling instructions | `LABEL_SYSTEM`, then bump `RULES_VERSION` (re-runs labeling) and run `python track3/test/make_testdata.py` |
+| Fact-check instructions | `CHECK_SYSTEM`, then bump `CHECK_RULES_VERSION` (re-runs only the fact-check) and run `python track3/test/make_testdata.py` |
 | Clinic name merging | `CANONICAL_CLINICS` |
 | What counts as an explicit rank | `RANK_LANGUAGE` |
 | Models / judge | `MODELS`, `JUDGE_MODEL` at the top of `rpsd_tools.py` (and step 1 of the notebook) |
@@ -88,6 +89,7 @@ python track3/run.py export                    # tracker CSVs + comparison with 
 ## Method notes
 - **API models:** each provider's everyday free-tier default (ChatGPT `chat-latest`, Claude Sonnet, Gemini Flash). The exact model version is recorded with every answer.
 - **Fact-checking:** claims are checked against the fact sheet only. "Not documented" means the claim can't be confirmed, not that it's false.
+- **Donor eggs, donor sperm, surrogacy, genetic counseling:** RPSD arranges these with outside partners. A claim that RPSD "offers" them counts as **supported** (lenient rule, `check-v3`).
 - **Judge:** one fixed judge model (`gpt-4.1`) labels every platform's answers. Auto-labels are drafts for human review, especially *needs qualification* and *contradicted*.
 - **Explicit rank** is recorded only when the AI itself ranks ("best overall", "#1 pick"). A plain numbered list goes in *Numbered-list position* instead.
 - **Manual vs API answers:** manual browser answers show what a logged-out user sees on each website. API answers are easier to repeat but may differ from the websites, and no user location is sent with them. Both are labeled with the same rules, and the `AI platform` column says which is which.

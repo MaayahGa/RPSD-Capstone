@@ -50,7 +50,8 @@ def run_test():
          rows['T01']['Explicit recommendation rank'] == '' and rows['T01']['Numbered-list position'] == 2),
         ('competitor names normalized (SDFC -> San Diego Fertility Center)',
          rows['T01']['Competitors mentioned'] == 'San Diego Fertility Center; Hanabusa IVF'),
-        ('donor programs flagged as needs qualification', rows['T01']['Accuracy assessment'] == 'Needs qualification - review'),
+        ('donor programs supported (lenient rule)', 'SUPPORTED: Offers donor egg programs' in rows['T01']['Evidence / fact-sheet reference']),
+        ('"part of UC San Diego Health" flagged as needs qualification', rows['T01']['Accuracy assessment'] == 'Needs qualification - review'),
         ('invented fact ID F99 removed from the evidence', 'F99' not in rows['T01']['Evidence / fact-sheet reference']),
         ('RPSD absent -> N/A values', rows['T02']['RPSD mentioned'] == 'No' and rows['T02']['First mention order'] == R.NA_ABSENT),
         ('priority competitor detected (RMA San Diego / Pearl)', 'RMA San Diego' in rows['T02']['Notes / deviations']),
@@ -66,7 +67,7 @@ def run_test():
         print(f"  {'PASS' if ok else 'FAIL'}  {name}")
     failed = [n for n, ok in checks if not ok]
     if failed and T.SKIPPED:
-        print('\nThe sample judge results no longer match the rules (RULES_VERSION changed?). '
+        print('\nThe sample judge results no longer match the rules (RULES_VERSION / CHECK_RULES_VERSION changed?). '
               'Rebuild them with: python track3/test/make_testdata.py')
     print(f'\n{len(checks) - len(failed)}/{len(checks)} checks passed. Outputs: {out}')
     return 1 if failed else 0

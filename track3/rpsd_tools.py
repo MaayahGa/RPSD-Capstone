@@ -738,7 +738,7 @@ def label_one(item):
     judgments = []
     if claims and mentioned != 'No':
         numbered = '\n'.join(f"{i}. {c['claim']} (answer says: \"{c['quote']}\")" for i, c in enumerate(claims, 1))
-        chk = cached('check', [R.RULES_VERSION, JUDGE_PROVIDER, JUDGE_MODEL, FACT_VERSION, numbered], lambda: call_with_retry(
+        chk = cached('check', [R.CHECK_RULES_VERSION, JUDGE_PROVIDER, JUDGE_MODEL, FACT_VERSION, numbered], lambda: call_with_retry(
             judge_json, R.CHECK_SYSTEM,
             f"Today's date: {FACT_FETCHED}\n\n<fact_sheet>\n{FACT_TEXT}\n</fact_sheet>\n\n<claims>\n{numbered}\n</claims>",
             R.CHECK_SCHEMA, 'rpsd_fact_check'))
@@ -756,7 +756,7 @@ def label_one(item):
     if rank and pos != '' and rank == pos and not re.search(R.RANK_LANGUAGE, rpsd_item_text(answer), re.I):
         rank, rank_note = 0, f'Judge rank {pos} equals RPSD\'s numbered-list position with no ranking language; recorded as list position only.'
     priority = [p for p in R.PRIORITY_COMPETITORS if p in competitors]
-    notes = [f'Auto-labeled ({R.RULES_VERSION}).']
+    notes = [f'Auto-labeled ({R.RULES_VERSION}, {R.CHECK_RULES_VERSION}).']
     if dropped:
         notes.append(f'{dropped} claim(s) dropped: quote not found verbatim in the answer.')
     if rank_note:
