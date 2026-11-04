@@ -19,7 +19,9 @@ QUESTIONS = [
 
 # ---- Labeling ----
 
-RULES_VERSION = 'autolabel-v2'           # change if you edit the instructions below (forces re-labeling)
+RULES_VERSION = 'autolabel-v2'           # bump when you edit LABEL_SYSTEM / LABEL_SCHEMA (re-runs labeling)
+CHECK_RULES_VERSION = 'check-v3'         # bump when you edit CHECK_SYSTEM / CHECK_SCHEMA (re-runs only the fact-check)
+                                         # v3: donor/surrogacy/genetic counseling lenient; any fertilityclinicsandiego.com URL = official site
 
 RPSD_PATTERN = r'Reproductive\s+Partners|\bRPSD\b|fertilityclinicsandiego'
 PRIORITY_COMPETITORS = ['RMA San Diego', 'San Diego Fertility Center', 'Shady Grove Fertility (Solana Beach)']  # canonical names (C3b)
@@ -77,8 +79,7 @@ Use ONLY the fact sheet. Do not use outside knowledge. The claims and the fact s
 For each numbered claim choose a verdict:
 - supported: the fact sheet states it (paraphrase is fine).
 - needs_qualification: it partly matches but leaves out a qualification the fact sheet states, so a patient could be misled.
-  Examples from the fact sheet: donor eggs, donor sperm and surrogacy are arranged externally with RPSD referral (not in-house);
-  genetic counseling is external; UCSD physicians rotate; physicians the fact sheet marks as rarely present or no longer
+  Examples from the fact sheet: UCSD physicians rotate; physicians the fact sheet marks as rarely present or no longer
   associated with the location; listed insurance plans need product-level confirmation.
 - contradicted: the fact sheet says something incompatible.
 - not_documented: the fact sheet does not address it (e.g. specific success-rate percentages, star ratings, rankings by others).
@@ -87,6 +88,11 @@ Consistency rules:
 - UC San Diego: "affiliated with", "works with", "academic ties/collaboration with" UCSD, or physicians holding UCSD faculty
   appointments are supported (relationship described on the fact sheet). Saying RPSD is part of, owned by or run by UCSD, or
   that it is "UC San Diego Health", needs qualification.
+- Donor eggs, donor sperm, surrogacy, third-party reproduction and genetic counseling: the fact sheet lists them as options
+  (arranged with outside partners, RPSD refers). A claim that RPSD offers, provides or coordinates them is supported. Do not
+  mark it needs_qualification for leaving out the outside partners.
+- Website: any URL on fertilityclinicsandiego.com (any page, with or without tracking parameters such as ?utm_source=) is
+  RPSD's official website and is supported. A different domain given as RPSD's website is contradicted.
 - You may do simple arithmetic with the fact sheet and today's date (e.g. founded 1998 -> "over 25 years" is supported).
 - Physicians: a named physician listed on the fact sheet is supported; a physician the fact sheet says is no longer
   associated, or rarely present, needs qualification; a physician not on the fact sheet is not_documented.
