@@ -1,11 +1,11 @@
-"""Rebuild the synthetic test sample in track3/test/testdata/.
+"""Rebuild the synthetic test sample in track3/tests/fixtures/.
 
 Everything here is MADE UP: four short fake AI answers, fake hand labels, and scripted judge outputs
 (written by hand below, not produced by a real model). It lets `python track3/run.py test` exercise
 the whole pipeline offline and for free.
 
 Re-run this after changing RULES_VERSION / CHECK_RULES_VERSION, the labeling schemas, or the judge model:
-    python track3/test/make_testdata.py
+    python track3/tests/make_testdata.py
 """
 import csv, json, shutil, sys
 from pathlib import Path
@@ -15,7 +15,7 @@ sys.path.insert(0, str(HERE.parent))
 import rpsd_rules as R     # noqa: E402
 import rpsd_tools as T     # noqa: E402
 
-OUT = HERE / 'testdata'
+OUT = HERE / 'fixtures'
 SEED = OUT / 'data_seed'
 
 # ---- fake answers -------------------------------------------------------------------------------

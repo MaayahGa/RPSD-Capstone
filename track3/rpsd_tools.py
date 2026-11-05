@@ -1,4 +1,4 @@
-"""RPSD pilot: all the machinery behind RPSD_Pilot.ipynb.
+"""RPSD pilot: all the machinery behind notebooks/01_collect_and_label.ipynb.
 
 The notebook sets the settings (configure) and calls these functions in order.
 Study rules (questions, labeling instructions, clinic names) live in rpsd_rules.py.

@@ -20,17 +20,17 @@ track3/
 ├── .env.example                      # Blank private-settings template
 ├── requirements.txt                  # Collection, labeling, preparation, tests
 ├── requirements_eda.txt              # EDA and notebook dependencies
-├── RPSD_Pilot.ipynb                   # Interactive collection and labeling
 ├── run.py                            # Command-line pipeline and offline demo test
 ├── rpsd_rules.py                     # Exact prompts, label rules, clinic aliases
 ├── rpsd_tools.py                     # Collection, saved labels, fact checks, exports
 ├── prepare_eda.py                    # Build the EDA input from saved API outputs
 ├── notebooks/
+│   ├── 01_collect_and_label.ipynb    # API collection and labeling
 │   └── 02_explore_responses.ipynb     # Research questions, graphs, and findings
-└── test/
+└── tests/
     ├── make_testdata.py              # Rebuild synthetic fixtures
     ├── test_eda.py                  # Input-preparation and notebook matching checks
-    └── testdata/                     # Fake answers, fact sheet, tracker, cached judgments
+    └── fixtures/                     # Fake answers, fact sheet, tracker, cached judgments
 ```
 
 Save real data and results in **`data/track3/`**. This folder and `track3/.env`
@@ -79,7 +79,7 @@ works; its results are not findings about RPSD.
 
 ## 1 Collect and label API responses
 
-Open **`track3/RPSD_Pilot.ipynb`** and run its cells in order:
+Open **`track3/notebooks/01_collect_and_label.ipynb`** and run its cells in order:
 
 1. Give your run a unique `BATCH_ID`, such as `tester1_pilot-01`. Keep `TRIALS = 3`.
 2. Check the model settings. Use the same questions in `rpsd_rules.py` for the whole batch.
@@ -210,7 +210,7 @@ Then `run.py label` labels these rows together with the API answers.
 
 ## Tests
 
-`track3/test/` contains software checks and fake example data. `test_eda.py` checks
+`track3/tests/` contains software checks and fake example data. `test_eda.py` checks
 CSV preparation and the competitor-position function defined in the notebook. It does not hold
 our real responses. `make_testdata.py` rebuilds the examples after rule changes.
 
@@ -236,7 +236,7 @@ automatic label on real data is correct.
 | Models / judge | Collection notebook settings or defaults in `rpsd_tools.py` |
 | Research plots / provisional topics | `notebooks/02_explore_responses.ipynb` |
 
-Rebuild fixtures with `python track3/test/make_testdata.py`.
+Rebuild fixtures with `python track3/tests/make_testdata.py`.
 
 ## Interpretation notes
 

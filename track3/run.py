@@ -18,7 +18,7 @@ sys.path.insert(0, str(HERE))
 import rpsd_rules as R          # noqa: E402
 import rpsd_tools as T          # noqa: E402
 
-TESTDATA = HERE / 'test' / 'testdata'
+TESTDATA = HERE / 'tests' / 'fixtures'
 
 
 def run_test():
@@ -67,7 +67,7 @@ def run_test():
     failed = [n for n, ok in checks if not ok]
     if failed and T.SKIPPED:
         print('\nThe sample judge results no longer match the rules (RULES_VERSION / CHECK_RULES_VERSION changed?). '
-              'Rebuild them with: python track3/test/make_testdata.py')
+              'Rebuild them with: python track3/tests/make_testdata.py')
     print(f'\n{len(checks) - len(failed)}/{len(checks)} checks passed. Outputs: {out}')
     return 1 if failed else 0
 
