@@ -15,14 +15,14 @@ RPSD-Capstone/
 ├── README.md       this file
 ├── .gitignore      keeps patient data and API keys out of the repo
 ├── track1/         Data Stream 1: Reviews
-└── (Data Stream 2 folder goes here)
+└── track3/         Data Stream 2: LLM responses
 ```
 
-Each data stream is self-contained: its own `README.md`, `requirements.txt`, and `.env`.
-Run each stream's commands from inside its own folder.
+Each data stream is self-contained: its own `README.md`, requirements, and `.env`.
+Run Track 1 commands from inside `track1/` and Track 3 commands from the repository root.
 
 > **Privacy:** reviews contain real patients' health details and this repo is public.
-> Collected data (`data/` folders, `*.db`) and API keys (`.env`) are gitignored. Never commit them.
+> Collected data (`data/` folders, `*.db`) and private settings (`.env`) are gitignored. Never commit them.
 
 ---
 
@@ -61,8 +61,73 @@ python reputation_item.py export      # writes data/exports/*.csv and *.json
 
 ## Data Stream 2: LLM Responses
 
-*To be filled in by Report Group 2.*
+Asks AI assistants the same 6 patient questions, 3 trials each, then labels RPSD's visibility
+(whether it is mentioned, how early, and next to which competitors) and checks each claim about
+RPSD against the clinic's fact sheet. Five questions do not name RPSD; one does. Answers come from
+two sources, which are kept separate because they can differ:
 
-- **Data access and storage:**
-- **Software dependencies:**
-- **Commands to reproduce:**
+- **API runs:** OpenAI, Anthropic, and Gemini with web search on (54 answers per batch).
+- **Manual browser runs:** each tester uses ChatGPT, Claude, Gemini, Grok, and Microsoft Copilot in
+  fresh incognito sessions, logged out where possible, and logs the answers in a tracker sheet (90 answers per tester).
+
+Both sources get the same labels and fact checks, but the analysis workflow below currently covers
+API runs only. Labeled manual answers are exported separately as
+`data/track3/autolabels-sheet-<tester>-<timestamp>.csv`.
+
+**Full instructions: [`track3/README.md`](track3/README.md)**
+
+**Data access and storage**
+
+- Real data is saved in `data/track3/` at the repository root. It is gitignored, so the team shares it privately.
+- A real API run requires API keys for the three providers (the OpenAI key also runs labeling) and the
+  private Google ID for the clinic fact sheet (ask a teammate), which goes in `track3/.env`. The collection
+  notebook asks for keys in hidden prompts; only `track3/run.py` reads them from `track3/.env`.
+- Labeling manual answers also requires the tracker sheet's ID and tab IDs in `track3/.env`. If the tab IDs
+  are set, the notebook labels those rows too, which adds paid calls. For an API-only run, leave them blank
+  or set `SHEET_TABS = {}` in the notebook.
+- Without team access, you can still run the offline tests and demo, which need no keys or real data. Their fixtures in `track3/tests/fixtures/` are made up.
+
+**Software dependencies**
+
+- Full workflow, including both notebooks: `track3/requirements_eda.txt` (pandas, matplotlib, ipykernel),
+  tested with Python 3.14.
+- Command-line collection and labeling only (`track3/run.py`): Python 3.10 or later and `track3/requirements.txt`.
+
+**Commands to reproduce**
+
+Quick start, run from the repository root (offline, no keys or spending):
+
+```
+git clone https://github.com/MaayahGa/RPSD-Capstone.git
+cd RPSD-Capstone
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r track3/requirements_eda.txt
+python track3/run.py test                                       # 14 pipeline checks
+python -m unittest discover -s track3/tests -p 'test_*.py'      # 9 EDA checks
+python track3/prepare_eda.py --demo                             # writes a one-answer sample input
+# To see the analysis, run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = 'sample'
+```
+
+Reproduce the results of a saved batch (no keys or spending). AI answers vary between runs, so this is the
+way to reproduce a specific result. Ask the Track 3 team for the batch's private files and put them in
+`data/track3/`: `<batch>-answers.csv`, one `<batch>-<provider>-raw.jsonl` per provider, and that batch's
+`autolabels-api-<timestamp>.csv`. Then, after the install steps above:
+
+```
+python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+# Then run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = '<batch>'
+```
+
+Collect a new batch (**collection and labeling make paid API calls**; see `track3/README.md` for each step):
+
+```
+cp -n track3/.env.example track3/.env                           # fill in your Google IDs
+# 1. Collect and label: run track3/notebooks/01_collect_and_label.ipynb with a new BATCH_ID
+# 2. Build the analysis input:
+python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+# 3. Analyze: run track3/notebooks/02_explore_responses.ipynb with the same BATCH_ID
+```
+
+Results are written to `data/track3/eda/<batch>/`: research tables, figures, and
+`responses_for_sentiment.csv`, which is shared privately with Track 2 for sentiment scoring.
