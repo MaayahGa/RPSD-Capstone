@@ -811,6 +811,10 @@ def _safe(v):
     v = '' if v is None else str(v)
     return "'" + v if v.lstrip().startswith(('=', '+', '-', '@')) else v
 
+def _unsafe(v):
+    """Undo _safe: remove only the apostrophe it would have added."""
+    return v[1:] if v.startswith("'") and _safe(v[1:]) == v else v
+
 def _write(path, rows):
     with path.open('w', encoding='utf-8-sig', newline='') as f:
         w = csv.DictWriter(f, fieldnames=R.TRACKER_HEADERS, extrasaction='ignore'); w.writeheader()

@@ -8,6 +8,8 @@ import sys
 
 import pandas as pd
 
+from rpsd_tools import _safe, _unsafe
+
 REPO = Path(__file__).resolve().parent.parent
 ANSWER_COLUMNS = {
     'Run ID': 'source_run_id', 'Provider': 'provider', 'Model requested': 'model_requested',
@@ -71,7 +73,8 @@ def build_input(batch, tester, answers_path, labels_path, raw_dir, output):
     settings = []
     for _, answer in merged.iterrows():
         raw = captures.get(answer.source_run_id)
-        if raw is None or raw.get('answer') != answer.response_text:
+        # The CSV exports guard formula-like text with an apostrophe; the raw capture does not.
+        if raw is None or _safe(raw.get('answer')) != answer.response_text:
             raise ValueError(f'{answer.source_run_id}: missing or mismatched original capture.')
         if raw.get('model', '') != answer.model_requested or raw.get('prompt', '') != answer.prompt_text:
             raise ValueError(f'{answer.source_run_id}: original model/prompt metadata mismatch.')
@@ -79,6 +82,11 @@ def build_input(batch, tester, answers_path, labels_path, raw_dir, output):
                          ['collection_mode', 'search_setting', 'session_note']})
     for name in ['collection_mode', 'search_setting', 'session_note']:
         merged[name] = [row[name] for row in settings]
+    # Keep the exact original answer and remove the export guard from label text.
+    merged['response_text'] = [captures[run_id]['answer'] for run_id in merged.source_run_id]
+    for name in LABEL_COLUMNS.values():
+        if name.startswith('auto_'):
+            merged[name] = merged[name].map(_unsafe)
     # Read provenance from saved label evidence, never from current model defaults.
     merged['visibility_label_source'] = merged.auto_fact_check_evidence.map(
         lambda text: 'automated:' + match.group(1) if (match := re.search(r'judge ([^\s;]+)', text))

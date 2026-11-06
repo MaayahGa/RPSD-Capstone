@@ -75,6 +75,25 @@ class PrepareEDATest(unittest.TestCase):
             self.build()
         self.assertFalse(self.output.exists())
 
+    def test_restores_text_guarded_by_csv_export(self):
+        path = self.folder / 'sample-openai-raw.jsonl'
+        row = json.loads(path.read_text().splitlines()[0])
+        row['answer'] = '- ' + row['answer']
+        path.write_text(json.dumps(row) + '\n')
+        guarded = "'" + row['answer']
+        answers = pd.read_csv(self.answers, dtype=str, keep_default_na=False)
+        answers['Answer'] = guarded
+        answers.to_csv(self.answers, index=False)
+        labels = pd.read_csv(self.labels, dtype=str, keep_default_na=False)
+        labels['Full response verbatim'] = guarded
+        labels['RPSD snippet + surrounding context'] = "'- RPSD snippet"
+        labels.to_csv(self.labels, index=False)
+        table = self.build()
+        saved = pd.read_csv(self.output, dtype=str, keep_default_na=False)
+        for result in (table, saved):
+            self.assertEqual(result.response_text[0], row['answer'])
+            self.assertEqual(result.auto_rpsd_context_candidate[0], '- RPSD snippet')
+
 
 # Execute only the tagged function-definition cell, not the data/API workflow.
 NOTEBOOK = TRACK3 / 'notebooks/02_explore_responses.ipynb'
