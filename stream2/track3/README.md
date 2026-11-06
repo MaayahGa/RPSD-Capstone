@@ -33,12 +33,12 @@ track3/
     └── fixtures/                     # Fake answers, fact sheet, tracker, cached judgments
 ```
 
-Save real data and results in **`data/track3/`**. This folder and `track3/.env`
+Save real data and results in **`stream2/data/track3/`**. This folder and `track3/.env`
 are excluded from Git. Share data privately with the team.
 
 ## Setup
 
-Run terminal commands from the **repository root**, `RPSD-Capstone/`.
+Run terminal commands from **`stream2/`**, the parent of this folder.
 
 ```bash
 python3 -m venv .venv

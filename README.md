@@ -15,11 +15,13 @@ RPSD-Capstone/
 ├── README.md       this file
 ├── .gitignore      keeps patient data and API keys out of the repo
 ├── track1/         Data Stream 1: Reviews
-└── track3/         Data Stream 2: LLM responses
+└── stream2/        Data Stream 2: LLM responses
+    ├── track2/     sentiment scoring
+    └── track3/     collection, labeling, and analysis
 ```
 
 Each data stream is self-contained: its own `README.md`, requirements, and `.env`.
-Run Track 1 commands from inside `track1/` and Track 3 commands from the repository root.
+Run Track 1 commands from inside `track1/` and Stream 2 commands from inside `stream2/`.
 
 > **Privacy:** reviews contain real patients' health details and this repo is public.
 > Collected data (`data/` folders, `*.db`) and private settings (`.env`) are gitignored. Never commit them.
@@ -74,11 +76,13 @@ Both sources get the same labels and fact checks, but the analysis workflow belo
 API runs only. Labeled manual answers are exported separately as
 `data/track3/autolabels-sheet-<tester>-<timestamp>.csv`.
 
-**Full instructions: [`track3/README.md`](track3/README.md)**
+**Full instructions: [`stream2/track3/README.md`](stream2/track3/README.md)**
+
+Paths in this section are relative to `stream2/`.
 
 **Data access and storage**
 
-- Real data is saved in `data/track3/` at the repository root. It is gitignored, so the team shares it privately.
+- Real data is saved in `data/track3/` inside `stream2/`. It is gitignored, so the team shares it privately.
 - A real API run requires API keys for the three providers (the OpenAI key also runs labeling) and the
   private Google ID for the clinic fact sheet (ask a teammate), which goes in `track3/.env`. The collection
   notebook asks for keys in hidden prompts; only `track3/run.py` reads them from `track3/.env`.
@@ -95,11 +99,11 @@ API runs only. Labeled manual answers are exported separately as
 
 **Commands to reproduce**
 
-Quick start, run from the repository root (offline, no keys or spending):
+Quick start (offline, no keys or spending):
 
 ```
 git clone https://github.com/MaayahGa/RPSD-Capstone.git
-cd RPSD-Capstone
+cd RPSD-Capstone/stream2
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r track3/requirements_eda.txt
