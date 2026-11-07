@@ -14,14 +14,16 @@ We study RPSD's online reputation from two angles, each with its own data stream
 RPSD-Capstone/
 ├── README.md       this file
 ├── .gitignore      keeps patient data and API keys out of the repo
-├── track1/         Data Stream 1: Reviews
+├── stream1/        Data Stream 1: Reviews
+│   ├── track1/     review collection
+│   └── track2/     sentiment and severity scoring
 └── stream2/        Data Stream 2: LLM responses
     ├── track2/     sentiment scoring
     └── track3/     collection, labeling, and analysis
 ```
 
 Each data stream is self-contained: its own `README.md`, requirements, and `.env`.
-Run Track 1 commands from inside `track1/` and Stream 2 commands from inside `stream2/`.
+Run Stream 1 commands from inside each track's folder (e.g. `stream1/track1/`) and Stream 2 commands from inside `stream2/`.
 
 > **Privacy:** reviews contain real patients' health details and this repo is public.
 > Collected data (`data/` folders, `*.db`) and private settings (`.env`) are gitignored. Never commit them.
@@ -34,22 +36,24 @@ Collects patient reviews of RPSD into one SQLite database with a shared record f
 (`reputation_item`), then exports CSV/JSON for severity scoring and analysis.
 Sources are **permitted only**: the clinic's own Google Business Profile export (Google Takeout),
 the clinic's Yelp business dashboard, and Reddit once API access is approved.
-Status of every source is in [`track1/source_inventory.md`](track1/source_inventory.md).
+Status of every source is in [`stream1/track1/source_inventory.md`](stream1/track1/source_inventory.md).
 
-**Full instructions: [`track1/README.md`](track1/README.md)**
+**Full instructions: [`stream1/track1/README.md`](stream1/track1/README.md)**
+
+Sentiment and severity scoring of these reviews: [`stream1/track2/README.md`](stream1/track2/README.md)
 
 Quick start:
 
 ```
 git clone https://github.com/MaayahGa/RPSD-Capstone.git
-cd RPSD-Capstone/track1
+cd RPSD-Capstone/stream1/track1
 python -m pip install -r requirements.txt
 cp .env.example .env              # fill in your own keys
 python test_importers.py          # offline tests, made-up data
 python google/test_places.py      # offline tests, made-up data
 ```
 
-Getting the data (requires clinic account access; see `track1/README.md` for each step):
+Getting the data (requires clinic account access; see `stream1/track1/README.md` for each step):
 
 ```
 python google/import_google_takeout.py data/raw/google/takeout-XXXX.zip

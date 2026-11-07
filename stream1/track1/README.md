@@ -1,13 +1,13 @@
 # Data Stream 1: Reviews (Track 1)
 
 Part of the DSC 180A capstone with Reproductive Partners Fertility Center – San Diego (RPSD).
-See the [main README](../README.md) for the full project. Track 1 collects online reviews of RPSD and nearby competitor clinics from **permitted
+See the [main README](../../README.md) for the full project. Track 1 collects online reviews of RPSD and nearby competitor clinics from **permitted
 sources only** (official APIs, not scraping) for the rest of the reputation pipeline.
 
 ## What's here
 
 ```
-track1/
+stream1/track1/
 ├── README.md, requirements.txt, .env.example   setup (.env lives here too)
 ├── clinics.json             RPSD + competitors, Google place IDs, name aliases
 ├── reputation_item.py       shared record format, SQLite database, CSV/JSON export
@@ -31,14 +31,14 @@ track1/
     └── exports/                               CSV/JSON for Tracks 2 and 4
 ```
 
-**Run every command from the `track1/` folder.**
+**Run every command from the `stream1/track1/` folder.**
 
 ## Setup
 
 1. Clone the repo and go into the folder:
    ```
    git clone https://github.com/MaayahGa/RPSD-Capstone.git
-   cd RPSD-Capstone/track1
+   cd RPSD-Capstone/stream1/track1
    ```
 2. Install the packages. Use `python -m pip` so they go into the same Python you run the scripts with:
    ```
