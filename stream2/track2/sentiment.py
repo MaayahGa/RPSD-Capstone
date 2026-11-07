@@ -4,7 +4,7 @@ purpose: RoBERTa sentiment scores are computed for a text column in a CSV datase
 
 if you decide to run in a terminal:
     python sentiment.py --input data/reputation_items_all_sources.csv \
-        --text-col title --output data/reputation_items_scored.csv
+        --text-col text --output data/reputation_items_scored.csv
 
 setup:
     pip install -U pandas numpy transformers torch
