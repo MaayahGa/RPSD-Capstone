@@ -20,9 +20,6 @@ source .venv/bin/activate        # macOS/Linux
 pip install -r requirements.txt
 ```
 
-## Files
-
-
 ## Data
 
 The script defaults to using `data/reputation_items_all_sources.csv`, which is a file obtained from Track 1 and is not included in this repo for confidentiality reasons. The CSV file requires one column containing review text to score.
@@ -109,3 +106,7 @@ Inference with a fixed model is deterministic (there is no training or random sa
 - **`Column '...' not found`**: check the spelling against the column list in the error message.
 - **Out of memory:** lower `--batch-size` (for example `8`) or `--max-length`.
 - **Slow on CPU:** expected for large datasets. Use `--device 0` if you have a CUDA GPU.
+
+## Limitations
+
+The default RoBERTa model was fine-tuned on tweets. It generally works well on short, informal text such as reviews, which is why we use it here. However, sentiment scores for very long, formal, or domain-specific text (e.g clinical language) should be spot-checked against a sample you have labeled by hand.
