@@ -1,7 +1,7 @@
 # Track 3: What AI assistants say about RPSD
 
 Part of **Report B** (Track 3 + Tracks 2/4). We ask AI assistants the same 6 patient questions, 3 separate trials each, in two ways:
-- **Manual browser runs:** each tester types the questions into the AI websites (ChatGPT, Claude, Gemini, Grok, Microsoft Copilot), using a fresh incognito session per run, logged out where possible, and pastes the full answer into the tracker sheet.
+- **Manual browser runs:** each tester types the questions into the AI websites (ChatGPT, Claude, Gemini), using a fresh incognito session per run, logged out where possible, and pastes the full answer into the tracker sheet.
 - **API runs:** `run.py collect` sends the same questions to the OpenAI, Anthropic and Gemini APIs, with web search on.
 
 Every answer, from either source, is then labeled for RPSD's visibility (mentioned? in what position? next to which competitors?), and every claim about RPSD is checked against the clinic's fact sheet.
@@ -205,9 +205,9 @@ passage to score. An absent mention is not neutral sentiment, and sentiment does
 not tell you whether a claim is accurate.
 
 ## Manual browser runs (by hand)
-Each tester collects 6 questions × 5 platforms × 3 trials = 90 answers into their own tab of the tracker sheet:
+Each tester collects 6 questions × 3 platforms × 3 trials = 54 answers into their own tab of the tracker sheet:
 1. Use the exact wording in `QUESTIONS` (`track3/rpsd_rules.py`). Freeze it before collecting.
-2. Platforms: ChatGPT, Claude, Gemini, Grok and Microsoft Copilot (the top five AI chatbots by U.S. desktop visitors, Comscore, March 2026).
+2. Platforms: ChatGPT, Claude and Gemini, the same three providers as the API runs.
 3. Use one fresh chat in a new incognito window per run, and close all incognito windows between runs. Stay logged out where possible. If a platform requires login, record the study account and its personalization settings.
 4. Record the UTC time, the model shown (or "Unknown"), the search mode and the browser/session in the row.
 5. Paste the full answer unchanged into *Full response verbatim*, along with any citation URLs. Answers longer than 32,767 characters (a Google Sheets cell's limit) go in a text file linked from the row.

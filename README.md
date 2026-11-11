@@ -73,8 +73,8 @@ RPSD against the clinic's fact sheet. Five questions do not name RPSD; one does.
 two sources, which are kept separate because they can differ:
 
 - **API runs:** OpenAI, Anthropic, and Gemini with web search on (54 answers per batch).
-- **Manual browser runs:** each tester uses ChatGPT, Claude, Gemini, Grok, and Microsoft Copilot in
-  fresh incognito sessions, logged out where possible, and logs the answers in a tracker sheet (90 answers per tester).
+- **Manual browser runs:** each tester uses ChatGPT, Claude, and Gemini, the same three as the API runs, in
+  fresh incognito sessions, logged out where possible, and logs the answers in a tracker sheet (54 answers per tester).
 
 Both sources get the same labels and fact checks, but the analysis workflow below currently covers
 API runs only. Labeled manual answers are exported separately as
@@ -139,3 +139,24 @@ python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track
 
 Results are written to `data/track3/eda/<batch>/`: research tables, figures, and
 `responses_for_sentiment.csv`, which is shared privately with Track 2 for sentiment scoring.
+
+---
+
+## AI use
+
+How each track used AI tools to build this repo, and what we did ourselves.
+
+- **Stream 1, Track 1:** We used AI to help write the README, build the script that converts Yelp reviews into
+  the same format as the Google reviews, and draft a Reddit collection script, which we have not tested. We chose
+  the permitted review sources, arranged access to the clinic's Google and Yelp accounts, applied for Reddit API
+  access, and reviewed and tested the other scripts.
+- **Track 2 (both streams):** We wrote the sentiment analysis in a Jupyter notebook, then used AI to turn that
+  code into the `sentiment.py` script, with one function for a simple EDA summary and one for sentiment scoring.
+  We also used AI to create the README and `requirements.txt`.
+- **Stream 2, Track 3:** We ran the pilot manually first, asking the AI assistants our questions and labeling
+  the answers by hand. We then used AI to help turn that process into scripts: it helped write and revise
+  the collection, labeling, and analysis code, the tests, and the READMEs, and checked that the instructions run
+  as written. We designed the study and its questions, collected the manual responses, reviewed
+  and tested the AI-assisted code, and decided what went into the repo.
+
+The prompts we used and how we tested the results will be documented in the report appendix.
