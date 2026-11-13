@@ -1,127 +1,162 @@
-# RPSD Capstone – Track 1: Reputation Data Collection
+# RPSD Capstone: AI Reputation Management for a Fertility Clinic
 
-DSC 180A capstone project with Reproductive Partners Fertility Center – San Diego (RPSD).
-Track 1 collects online reviews of RPSD and nearby competitor clinics from **permitted
-sources only** (official APIs, not scraping) for the rest of the reputation pipeline.
+DSC 180AB capstone (UC San Diego) with **Reproductive Partners Fertility Center – San Diego (RPSD)**.
+We study RPSD's online reputation from two angles, each with its own data stream and report group:
 
-## What's here
+| | Data stream | What it captures | Report group |
+| --- | --- | --- | --- |
+| 1 | **Reviews** | What patients actually write about RPSD (Google, Yelp, and other permitted sources) | Track 1, Judy, Kang |
+| 2 | **LLM responses** | What AI assistants say about RPSD when patients ask them | Track 3, Keilani, Kate |
+
+## Repository layout
 
 ```
 RPSD-Capstone/
-├── README.md, requirements.txt, .env.example   setup
-├── clinics.json             RPSD + competitors, Google place IDs, name aliases
-├── reputation_item.py       shared record format, SQLite database, CSV/JSON export
-├── import_manual.py         imports hand-logged reviews/posts from a CSV (any source)
-├── test_importers.py        offline tests for everything below (made-up data)
-├── source_inventory.md      status, method and limits of every source
-├── templates/               blank CSV template for import_manual.py
-├── google/
-│   ├── import_google_takeout.py   RPSD's full review history from Google Takeout
-│   ├── places_test.py             live rating/review check for all clinics (Places API)
-│   ├── test_places.py             offline tests for places_test.py
-│   └── sample_place.json          made-up Places data for the tests
-├── reddit/
-│   ├── reddit_collector.py        saves posts + comments naming a clinic (needs approved API app)
-│   └── reddit_test.py             early PRAW search test
-├── yelp/
-│   └── parse_yelp_paste.py        turns text copied from RPSD's Yelp dashboard into a CSV
-└── data/                    collected data, NEVER committed (gitignored)
-    ├── raw/google/  raw/yelp/  raw/reddit/   downloads and pastes
-    ├── reputation.db                          the database
-    └── exports/                               CSV/JSON for Tracks 2 and 4
+├── README.md       this file
+├── .gitignore      keeps patient data and API keys out of the repo
+├── stream1/        Data Stream 1: Reviews
+│   ├── track1/     review collection
+│   └── track2/     sentiment and severity scoring
+└── stream2/        Data Stream 2: LLM responses
+    ├── track2/     sentiment scoring
+    └── track3/     collection, labeling, and analysis
 ```
 
-**Run every command from the repo root** (the `RPSD-Capstone` folder).
+Each data stream is self-contained: its own `README.md`, requirements, and `.env`.
+Run Stream 1 commands from inside each track's folder (e.g. `stream1/track1/`) and Stream 2 commands from inside `stream2/`.
 
-## Setup
+> **Privacy:** reviews contain real patients' health details and this repo is public.
+> Collected data (`data/` folders, `*.db`) and private settings (`.env`) are gitignored. Never commit them.
 
-1. Clone the repo and go into the folder:
-   ```
-   git clone https://github.com/MaayahGa/RPSD-Capstone.git
-   cd RPSD-Capstone
-   ```
-2. Install the packages. Use `python -m pip` so they go into the same Python you run the scripts with:
-   ```
-   python -m pip install -r requirements.txt
-   ```
-3. Copy the key template and fill in your own keys:
-   ```
-   cp .env.example .env
-   ```
-   `.env` is in `.gitignore`. **Never commit it or paste keys anywhere public.**
+---
 
-## Running
+## Data Stream 1: Reviews
 
-Offline tests:
-```
-python test_importers.py
-python google/test_places.py
-```
+Collects patient reviews of RPSD into one SQLite database with a shared record format
+(`reputation_item`), then exports CSV/JSON for severity scoring and analysis.
+Sources are **permitted only**: the clinic's own Google Business Profile export (Google Takeout),
+the clinic's Yelp business dashboard, and Reddit once API access is approved.
+Status of every source is in [`stream1/track1/source_inventory.md`](stream1/track1/source_inventory.md).
 
-Live Google lookup for all clinics in `clinics.json`:
-```
-python google/places_test.py
-```
+**Full instructions: [`stream1/track1/README.md`](stream1/track1/README.md)**
 
-## Collecting reviews into the database
+Sentiment and severity scoring of these reviews: [`stream1/track2/README.md`](stream1/track2/README.md)
 
-Everything ends up in `data/reputation.db` as `reputation_item` records. **`data/` is gitignored:**
-reviews contain real patients' health details, and this repo is public.
+Quick start:
 
 ```
-mkdir -p data/raw/google data/raw/yelp data/raw/reddit
+git clone https://github.com/MaayahGa/RPSD-Capstone.git
+cd RPSD-Capstone/stream1/track1
+python -m pip install -r requirements.txt
+cp .env.example .env              # fill in your own keys
+python test_importers.py          # offline tests, made-up data
+python google/test_places.py      # offline tests, made-up data
+```
+
+Getting the data (requires clinic account access; see `stream1/track1/README.md` for each step):
+
+```
 python google/import_google_takeout.py data/raw/google/takeout-XXXX.zip
 python yelp/parse_yelp_paste.py data/raw/yelp/yelp_*star*.txt
 python import_manual.py data/raw/yelp/yelp_parsed.csv --source yelp --clinic RPSD
-python reddit/reddit_collector.py                     # once Reddit approves the app
-python reputation_item.py summary                     # counts per source and clinic
-python reputation_item.py export                      # writes data/exports/
+python reputation_item.py summary     # counts per source
+python reputation_item.py export      # writes data/exports/*.csv and *.json
 ```
 
-Re-running any importer only adds new items (duplicates are skipped by `id`).
-`export` writes `reputation_items_all_sources.csv/.json` plus one file per source.
+---
 
-### Fields (same for every source)
+## Data Stream 2: LLM Responses
 
-| Field | Meaning |
-| --- | --- |
-| `id` | `<source>_<platform id>`, or a content hash for hand-entered items |
-| `source` | `google`, `yelp`, `reddit`, ... |
-| `clinic` | Clinic name from `clinics.json` |
-| `posted_at` / `collected_at` | When it was posted / when we collected it |
-| `rating` | 1-5, blank for Reddit |
-| `title` | Reddit post title, blank otherwise |
-| `text` | Exactly what was written (blank for star-only Google reviews) |
-| `url` | Link to the post, or to the clinic's Google listing (Takeout has no per-review link) |
-| `engagement` | Reddit score; blank otherwise |
-| `owner_replied` | 1/0 whether the clinic replied publicly |
-| `collection_method` | `google_takeout`, `manual_entry`, `reddit_api` |
-| `insurance_period` | Export only: `before_2026` or `2026_onward` (clinic's insurance change in Jan 2026) |
+Asks AI assistants the same 6 patient questions, 3 trials each, then labels RPSD's visibility
+(whether it is mentioned, how early, and next to which competitors) and checks each claim about
+RPSD against the clinic's fact sheet. Five questions do not name RPSD; one does. Answers come from
+two sources, which are kept separate because they can differ:
 
-No reviewer names, usernames or profile links are ever stored.
+- **API runs:** OpenAI, Anthropic, and Gemini with web search on (54 answers per batch).
+- **Manual browser runs:** each tester uses ChatGPT, Claude, and Gemini, the same three as the API runs, in
+  fresh incognito sessions, logged out where possible, and logs the answers in a tracker sheet (54 answers per tester).
 
-## Google Places API setup
+Both sources get the same labels and fact checks, but the analysis workflow below currently covers
+API runs only. Labeled manual answers are exported separately as
+`data/track3/autolabels-sheet-<tester>-<timestamp>.csv`.
 
-1. In [Google Cloud Console](https://console.cloud.google.com), create a project and enable **Places API (New)**.
-2. **Link the project to a billing account** (Billing → Link a billing account). The free trial credit works.
-   Without this, Google still returns ratings but **silently drops the reviews field**, with no error.
-3. Create an API key restricted to **Places API (New)** only, and put it in `.env` as `GOOGLE_PLACES_API_KEY`.
+**Full instructions: [`stream2/track3/README.md`](stream2/track3/README.md)**
 
-## Limits of the Places API
+Paths in this section are relative to `stream2/`.
 
-- **Max 5 reviews per place, chosen by Google** ("most relevant", which skews positive). There is no way to get more through this API.
-- **Review content may not be stored.** Google's terms only allow saving **place IDs**. That's why the script prints
-  to the screen and `clinics.json` holds only IDs. Don't commit review text, screenshots, or saved output.
-- Reviews contain sensitive health details about real patients. Treat anything the scripts print as private.
-- Requesting reviews uses Google's most expensive pricing tier. A few runs cost pennies against the free credit,
-  but avoid putting this in a loop.
-- Look clinics up **by place ID**, not by name search. Searching by name sometimes returned no reviews (RMA San Diego).
+**Data access and storage**
 
-For RPSD's **full** review history, the clinic would need to grant access to the
-**Google Business Profile API** (owner-only). That's the long-term source for the client's own reviews.
+- Real data is saved in `data/track3/` inside `stream2/`. It is gitignored, so the team shares it privately.
+- A real API run requires API keys for the three providers (the OpenAI key also runs labeling) and the
+  private Google ID for the clinic fact sheet (ask a teammate), which goes in `track3/.env`. The collection
+  notebook asks for keys in hidden prompts; only `track3/run.py` reads them from `track3/.env`.
+- Labeling manual answers also requires the tracker sheet's ID and tab IDs in `track3/.env`. If the tab IDs
+  are set, the notebook labels those rows too, which adds paid calls. For an API-only run, leave them blank
+  or set `SHEET_TABS = {}` in the notebook.
+- Without team access, you can still run the offline tests and demo, which need no keys or real data. Their fixtures in `track3/tests/fixtures/` are made up.
 
-## Adding a clinic
+**Software dependencies**
 
-1. Find its place ID with a one-off name search, or with Google's Place ID Finder.
-2. Add an entry to `clinics.json` with `name`, `role` (`client` or `competitor`), and `google_place_id`.
-3. Run `python google/test_places.py`, then `python google/places_test.py`.
+- Full workflow, including both notebooks: `track3/requirements_eda.txt` (pandas, matplotlib, ipykernel),
+  tested with Python 3.14.
+- Command-line collection and labeling only (`track3/run.py`): Python 3.10 or later and `track3/requirements.txt`.
+
+**Commands to reproduce**
+
+Quick start (offline, no keys or spending):
+
+```
+git clone https://github.com/MaayahGa/RPSD-Capstone.git
+cd RPSD-Capstone/stream2
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r track3/requirements_eda.txt
+python track3/run.py test                                       # 14 pipeline checks
+python -m unittest discover -s track3/tests -p 'test_*.py'      # 9 EDA checks
+python track3/prepare_eda.py --demo                             # writes a one-answer sample input
+# To see the analysis, run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = 'sample'
+```
+
+Reproduce the results of a saved batch (no keys or spending). AI answers vary between runs, so this is the
+way to reproduce a specific result. Ask the Track 3 team for the batch's private files and put them in
+`data/track3/`: `<batch>-answers.csv`, one `<batch>-<provider>-raw.jsonl` per provider, and that batch's
+`autolabels-api-<timestamp>.csv`. Then, after the install steps above:
+
+```
+python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+# Then run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = '<batch>'
+```
+
+Collect a new batch (**collection and labeling make paid API calls**; see `track3/README.md` for each step):
+
+```
+cp -n track3/.env.example track3/.env                           # fill in your Google IDs
+# 1. Collect and label: run track3/notebooks/01_collect_and_label.ipynb with a new BATCH_ID
+# 2. Build the analysis input:
+python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+# 3. Analyze: run track3/notebooks/02_explore_responses.ipynb with the same BATCH_ID
+```
+
+Results are written to `data/track3/eda/<batch>/`: research tables, figures, and
+`responses_for_sentiment.csv`, which is shared privately with Track 2 for sentiment scoring.
+
+---
+
+## AI use
+
+How each track used AI tools to build this repo, and what we did ourselves.
+
+- **Stream 1, Track 1:** We used AI to help write the README, build the script that converts Yelp reviews into
+  the same format as the Google reviews, and draft a Reddit collection script, which we have not tested. We chose
+  the permitted review sources, arranged access to the clinic's Google and Yelp accounts, applied for Reddit API
+  access, and reviewed and tested the other scripts.
+- **Track 2 (both streams):** We wrote the sentiment analysis in a Jupyter notebook, then used AI to turn that
+  code into the `sentiment.py` script, with one function for a simple EDA summary and one for sentiment scoring.
+  We also used AI to create the README and `requirements.txt`.
+- **Stream 2, Track 3:** We ran the pilot manually first, asking the AI assistants our questions and labeling
+  the answers by hand. We then used AI to help turn that process into scripts: it helped write and revise
+  the collection, labeling, and analysis code, the tests, and the READMEs, and checked that the instructions run
+  as written. We designed the study and its questions, collected the manual responses, reviewed
+  and tested the AI-assisted code, and decided what went into the repo.
+
+The prompts we used and how we tested the results will be documented in the report appendix.

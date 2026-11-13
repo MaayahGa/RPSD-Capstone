@@ -7,7 +7,7 @@ Usernames are never printed or saved.
 
 Setup:
   1. Create a "script" app at https://www.reddit.com/prefs/apps
-  2. Put these in the .env file in the repo root:
+  2. Put these in the .env file in track1/:
        REDDIT_CLIENT_ID=...
        REDDIT_CLIENT_SECRET=...
        REDDIT_USER_AGENT=rpsd-capstone-test by u/your_username

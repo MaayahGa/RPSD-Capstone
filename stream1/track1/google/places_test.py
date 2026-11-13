@@ -10,7 +10,7 @@ script only prints to the screen. Place IDs are the one thing we may save.
 Reviewer names are not printed.
 
 Setup:
-  1. Put GOOGLE_PLACES_API_KEY=your_key in a .env file next to this script
+  1. Put GOOGLE_PLACES_API_KEY=your_key in track1/.env
   2. python -m pip install -r requirements.txt
   3. python google/places_test.py   (run from the repo root)
 """
