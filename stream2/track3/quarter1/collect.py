@@ -49,19 +49,25 @@ def prepare_batch(directory, batch, tester, models, trials, questions):
     return manifest
 
 
-def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0, ask_fn=ask, topics=None, workers=1):
+def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0, ask_fn=ask, topics=None, workers=1, providers=None):
     """Append durable captures; a rerun skips all successful slots. Failures can be retried."""
     if type(workers) is not int or not 1 <= workers <= 3:
         raise ValueError('Workers must be between 1 and 3.')
     success = successful_records(directory, manifest)
     if topics is not None and (not topics or set(topics) - set(TOPICS)):
         raise ValueError('Select one or more valid topics.')
-    selected = [r for r in planned_rows(manifest) if topics is None or r['topic'] in topics]
+    if providers is not None and (not providers or set(providers) - set(manifest['models'])):
+        raise ValueError('Select one or more providers present in the frozen batch configuration.')
+    selected = [r for r in planned_rows(manifest)
+                if (topics is None or r['topic'] in topics)
+                and (providers is None or r['provider'] in providers)]
     todo = [r for r in selected if r['record_id'] not in success]
     saved_selected = sum(r['record_id'] in success for r in selected)
     print(f"{manifest['batch_id']}: {saved_selected} saved; {len(todo)} remaining collection slots.")
     if topics is not None:
         print(f"Selected topics: {', '.join(topics)}; {len(selected)} expected responses. Full batch design is unchanged.")
+    if providers is not None:
+        print(f"Selected providers: {', '.join(providers)}; other providers remain pending in the full batch.")
     if not spend:
         print('Plan only: no API calls. Add --spend to collect. Each slot can incur web-search charges too.')
         write_csv(directory / 'responses.csv', [success[k] for k in sorted(success)])
@@ -115,7 +121,7 @@ def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0,
     if remaining_selected:
         print(f'{remaining_selected} selected slots remain. Resume the same command to collect them.')
     elif topics is not None:
-        print('Selected topics complete. Other topics can be collected later using the same batch ID.')
+        print('Selected topic/provider scope complete. Remaining topics/providers can be collected later using the same batch ID.')
     if len(success) < len(list(planned_rows(manifest))):
         print('Full five-topic batch incomplete; combine requires all topics unless --allow-partial is used.')
     return failures
@@ -128,6 +134,7 @@ def main():
     parser.add_argument('--config', type=Path, default=HERE / 'models.json', help='Shared provider-to-model JSON mapping')
     parser.add_argument('--trials', type=int, default=3)
     parser.add_argument('--topics', nargs='+', choices=TOPICS, help='Collect only these topics now; the full batch manifest stays unchanged')
+    parser.add_argument('--providers', nargs='+', choices=tuple(KEY_NAMES), help='Collect only these providers now; keep the frozen model configuration unchanged')
     parser.add_argument('--data-dir', type=Path, default=DEFAULT_DATA)
     parser.add_argument('--env-file', type=Path, default=HERE / '.env')
     parser.add_argument('--spend', action='store_true', help='Allow paid collection requests')
@@ -149,7 +156,7 @@ def main():
         # Read keys only for an explicitly paid run. Planning works entirely offline.
         env = load_env(args.env_file) if args.spend else {}
         keys = {p: os.environ.get(k) or env.get(k, '') for p, k in KEY_NAMES.items()} if args.spend else {}
-        failed = collect_batch(directory, manifest, keys, args.spend, args.limit, args.delay, topics=args.topics, workers=args.workers)
+        failed = collect_batch(directory, manifest, keys, args.spend, args.limit, args.delay, topics=args.topics, workers=args.workers, providers=args.providers)
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(1, f'Cannot collect: {exc}\n')
     if failed:

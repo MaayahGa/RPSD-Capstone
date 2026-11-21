@@ -167,6 +167,33 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(len({a['record']['record_id'] for a in captures}), 72)
         self.assertTrue(all(a['record']['status'] == 'success' for a in captures))
 
+    def test_provider_filter_preserves_manifest_and_defers_openai(self):
+        models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
+        d, m = self.batch(models=models, trials=3, complete=False)
+        frozen = (d / 'manifest.json').read_bytes()
+        keys = {'Claude': 'fake-key', 'Gemini': 'fake-key'}
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake,
+                          topics=['safety', 'communication'], providers=['Claude', 'Gemini'], workers=3)
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake,
+                          topics=['safety', 'communication'], providers=['Claude', 'Gemini'], workers=3)
+        captures = [json.loads(line)['record'] for line in (d / 'attempts.jsonl').read_text().splitlines()]
+        self.assertEqual(len(captures), 96)
+        self.assertEqual({r['provider'] for r in captures}, {'Claude', 'Gemini'})
+        self.assertEqual((d / 'manifest.json').read_bytes(), frozen)
+        self.assertEqual(self.calls, 96)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, {'OpenAI': 'fake-key'}, True, delay=0, ask_fn=self.fake,
+                          topics=['safety', 'communication'], providers=['OpenAI'])
+        self.assertEqual(self.calls, 144)
+        self.assertEqual((d / 'manifest.json').read_bytes(), frozen)
+
+    def test_provider_filter_rejects_unconfigured_provider(self):
+        d, m = self.batch(complete=False)
+        with self.assertRaisesRegex(ValueError, 'providers present'):
+            collect_batch(d, m, {}, True, ask_fn=self.fake, providers=['Claude'])
+        self.assertEqual(self.calls, 0)
+
     def test_cli_offline_plan_and_missing_config(self):
         import subprocess
         script = Path(__file__).resolve().parents[1] / 'collect.py'

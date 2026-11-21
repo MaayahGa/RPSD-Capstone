@@ -115,6 +115,21 @@ three requests concurrently; the default is one. Successful captures are saved
 individually under a write lock. Use one collection process per batch, even when
 using multiple workers. Total planned response counts are unchanged.
 
+### Defer a provider while its credits are unavailable
+
+Keep all agreed providers in `models.json`. Use a runtime filter instead of
+changing the frozen batch design:
+
+```bash
+python3 track3/quarter1/collect.py --batch collector1-q1-01 --tester Collector1 --topics safety communication --providers Claude Gemini --spend --workers 3
+```
+
+With three trials this collects 96 responses across both clinics and topics.
+Only selected providers need keys. OpenAI slots stay pending. After credits are
+restored, fill the missing slots with `--providers OpenAI`, or omit the provider
+filter to collect all remaining slots. The merger continues to count uncollected
+providers as missing; partial handoffs must be labeled incomplete.
+
 ## 4. Share the complete batch folders privately
 
 Default location on local `main`:
