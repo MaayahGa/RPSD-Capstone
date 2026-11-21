@@ -1,5 +1,6 @@
 """Web-search API adapters. No network request is made on import."""
 import json
+import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -12,8 +13,21 @@ def post(url, headers, payload):
         with urlopen(req, timeout=300) as response:
             return json.load(response)
     except HTTPError as exc:
-        # Do not echo upstream bodies or request URLs: either could contain credentials.
-        raise RuntimeError(f'Provider HTTP {exc.code}; check model access, billing, quotas, and web-search support.') from None
+        # Include only simple provider error codes; never echo bodies or request URLs.
+        codes = []
+        try:
+            error = json.loads(exc.read()).get('error', {})
+            if isinstance(error, dict):
+                for field in ('type', 'code', 'status'):
+                    value = str(error.get(field, ''))
+                    if value and re.fullmatch(r'[A-Za-z0-9_.-]{1,80}', value):
+                        codes.append(f'{field}={value}')
+        except (ValueError, AttributeError):
+            pass
+        finally:
+            exc.close()
+        detail = '; ' + ', '.join(codes) if codes else ''
+        raise RuntimeError(f'Provider HTTP {exc.code}{detail}; check model access, billing, quotas, and web-search support.') from None
     except URLError:
         raise RuntimeError('Provider connection failed. Resume this batch to retry unsaved slots.') from None
 

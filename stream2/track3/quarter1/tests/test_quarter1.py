@@ -203,6 +203,18 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(len(rows), 80)
         self.assertTrue(json.loads((self.root / 'out/handoff_summary.json').read_text())['collection_settings_differ'])
 
+    def test_provider_error_codes_do_not_expose_response_body(self):
+        from urllib.error import HTTPError
+        from providers import post
+        body = io.BytesIO(json.dumps({'error': {'type': 'insufficient_quota',
+                                              'code': 'insufficient_quota',
+                                              'message': 'private body'}}).encode())
+        error = HTTPError('https://example.org', 429, 'limit', {}, body)
+        with patch('providers.urlopen', side_effect=error), self.assertRaises(RuntimeError) as raised:
+            post('https://example.org', {}, {})
+        self.assertIn('insufficient_quota', str(raised.exception))
+        self.assertNotIn('private body', str(raised.exception))
+
     def test_provider_parsing_and_incomplete_exclusion(self):
         cases = {
             'OpenAI': {'status': 'completed', 'model': 'resolved', 'output': [
