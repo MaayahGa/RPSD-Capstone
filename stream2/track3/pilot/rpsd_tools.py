@@ -21,7 +21,7 @@ import pandas as pd
 import rpsd_rules as R
 
 # ---------------------------------------------------------------- settings & state
-REPO = Path(__file__).resolve().parent.parent      # RPSD-Capstone/
+REPO = Path(__file__).resolve().parents[2]      # Stream 2 root; preserve existing data locations
 DATA_DIR = REPO / 'data' / 'track3'                 # gitignored (repo-wide data/ rule)
 DATA = DATA_DIR
 BATCH_ID, TRIALS = 'api-pilot-01', 3
@@ -58,7 +58,7 @@ class NeedsSpending(Exception):
 
 
 def load_env(path=None):
-    """Read KEY=value lines from track3/.env (gitignored). Private IDs live there, not in the code."""
+    """Read KEY=value lines from track3/pilot/.env (gitignored). Private IDs live there, not in the code."""
     path = Path(path or Path(__file__).resolve().parent / '.env')
     env = {}
     if path.exists():

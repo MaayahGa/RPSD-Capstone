@@ -10,7 +10,7 @@ import pandas as pd
 
 from rpsd_tools import _safe, _unsafe
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
 ANSWER_COLUMNS = {
     'Run ID': 'source_run_id', 'Provider': 'provider', 'Model requested': 'model_requested',
     'Model returned': 'model_returned', 'Prompt ID': 'prompt_id', 'Category': 'category',
@@ -118,7 +118,7 @@ def main():
     if args.demo:
         if any([args.batch, args.tester, args.answers, args.labels, args.raw_dir]):
             parser.error('--demo cannot be combined with real-data input arguments.')
-        subprocess.run([sys.executable, str(REPO / 'track3/run.py'), 'test'], cwd=REPO, check=True)
+        subprocess.run([sys.executable, str(REPO / 'track3/pilot/run.py'), 'test'], cwd=REPO, check=True)
         args.batch, args.tester = 'sample', 'Demo'
         args.answers = REPO / 'data/track3-test/sample-answers.csv'
         args.labels = next((REPO / 'data/track3-test').glob('autolabels-api-*.csv'))

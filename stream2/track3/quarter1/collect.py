@@ -107,7 +107,7 @@ def main():
     parser.add_argument('--config', type=Path, default=HERE / 'models.json', help='Shared provider-to-model JSON mapping')
     parser.add_argument('--trials', type=int, default=3)
     parser.add_argument('--data-dir', type=Path, default=DEFAULT_DATA)
-    parser.add_argument('--env-file', type=Path, default=HERE.parent / '.env')
+    parser.add_argument('--env-file', type=Path, default=HERE / '.env')
     parser.add_argument('--spend', action='store_true', help='Allow paid collection requests')
     parser.add_argument('--limit', type=int, help='At most this many unsaved slots this invocation')
     parser.add_argument('--delay', type=float, default=1.0)

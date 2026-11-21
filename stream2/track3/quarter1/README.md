@@ -1,6 +1,6 @@
 # Quarter 1: Topic-based AI responses
 
-This workflow is separate from the **Quarter 2 pilot test** in the parent Track 3
+This workflow is separate from the **Quarter 2 pilot test** in the sibling `pilot/`
 folder. It leaves the pilot's code, notebooks, questions, and saved batches intact.
 It uses Python 3.10+ and the standard library only; no installation is necessary.
 
@@ -24,7 +24,13 @@ account can access. Use exactly the same file for Siya and Audrey. Remove a
 provider entry if both of you agree not to collect it. Model IDs are explicit
 rather than inherited from the pilot. Placeholder values are rejected.
 
-Put keys in the existing gitignored `track3/.env`, or set environment variables:
+Copy the Quarter 1 credential template:
+
+```bash
+cp -n track3/quarter1/.env.example track3/quarter1/.env
+```
+
+Put keys in `track3/quarter1/.env`, or set environment variables:
 
 ```text
 OPENAI_API_KEY=...
@@ -32,7 +38,9 @@ ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 ```
 
-No tracker sheet or fact-sheet access is needed. This workflow collects responses;
+If your keys were previously in `track3/.env`, copy them to the new file or pass
+`--env-file track3/.env`. No tracker sheet or fact-sheet access is needed.
+This workflow collects responses;
 it does not call a sentiment judge or the pilot fact-checker.
 
 ## 2. Plan each independent batch (free, offline)
