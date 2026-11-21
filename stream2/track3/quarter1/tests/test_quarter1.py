@@ -136,6 +136,37 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'separate'):
             combine([a], a)
 
+    def test_topic_filter_resumes_without_changing_full_design(self):
+        models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
+        d, m = self.batch(models=models, trials=3, complete=False)
+        keys = {p: 'fake-key' for p in models}
+        manifest_before = (d / 'manifest.json').read_bytes()
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake, topics=['general'])
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake, topics=['general'])
+        self.assertEqual(self.calls, 72)
+        self.assertEqual((d / 'manifest.json').read_bytes(), manifest_before)
+        with (d / 'responses.csv').open(encoding='utf-8-sig', newline='') as f:
+            rows = list(csv.DictReader(f))
+        self.assertEqual(len(rows), 72)
+        self.assertEqual({r['topic'] for r in rows}, {'general'})
+        self.assertEqual(len(list(planned_rows(m))), 360)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake)
+        self.assertEqual(self.calls, 360)
+
+    def test_concurrent_topic_capture_is_durable_and_resumable(self):
+        models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
+        d, m = self.batch(models=models, trials=3, complete=False)
+        keys = {p: 'fake-key' for p in models}
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake, topics=['general'], workers=3)
+            collect_batch(d, m, keys, True, delay=0, ask_fn=self.fake, topics=['general'], workers=3)
+        captures = [json.loads(line) for line in (d / 'attempts.jsonl').read_text().splitlines()]
+        self.assertEqual(len(captures), 72)
+        self.assertEqual(len({a['record']['record_id'] for a in captures}), 72)
+        self.assertTrue(all(a['record']['status'] == 'success' for a in captures))
+
     def test_cli_offline_plan_and_missing_config(self):
         import subprocess
         script = Path(__file__).resolve().parents[1] / 'collect.py'

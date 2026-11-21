@@ -19,8 +19,9 @@ On the older `track3` branch, run from the repository root instead.
 cp -n track3/quarter1/models.example.json track3/quarter1/models.json
 ```
 
-Replace each placeholder in `models.json` with a search-capable API model ID your
-account can access. Use exactly the same file for every collector. Remove a
+The shared `models.json` records the models selected for the current study.
+If creating a configuration from the example, replace each placeholder with a
+search-capable API model ID your account can access. Use exactly the same file for every collector. Remove a
 provider entry if the team agrees not to collect it. Model IDs are explicit
 rather than inherited from the pilot. Placeholder values are rejected.
 
@@ -95,6 +96,24 @@ questions. Changing any of them requires a new batch ID. Use a new ID for an
 independent new round, even if the settings are identical. A transport interruption
 can leave an upstream request billed without a local success; resuming retries
 that slot. A malformed/truncated log is rejected rather than silently discarded.
+
+### Collect one topic at a time
+
+Add `--topics general` to collect only General now:
+
+```bash
+python3 track3/quarter1/collect.py --batch collector1-q1-01 --tester Collector1 --topics general --spend
+```
+
+With three providers and three trials, this collects 72 responses. The manifest
+still freezes all five topics; rerunning without `--topics` later collects the
+remaining topics and skips saved answers. You can also choose multiple topics,
+for example `--topics billing communication`. The combined handoff remains
+incomplete until all planned topics are collected. Topic selection does not
+change batch identity or the question-set version. Add `--workers 3` to run up to
+three requests concurrently; the default is one. Successful captures are saved
+individually under a write lock. Use one collection process per batch, even when
+using multiple workers. Total planned response counts are unchanged.
 
 ## 4. Share the complete batch folders privately
 

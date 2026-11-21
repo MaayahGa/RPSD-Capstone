@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Collect a frozen Quarter 1 batch. Defaults to a free, offline plan."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from datetime import datetime, timezone
 import json
 import os
@@ -8,7 +10,7 @@ from pathlib import Path
 import re
 import time
 
-from common import (DEFAULT_DATA, FIELDS, HERE, KEY_NAMES, atomic_json, fingerprint,
+from common import (DEFAULT_DATA, FIELDS, HERE, KEY_NAMES, TOPICS, atomic_json, fingerprint,
                     identifier, load_questions, planned_rows, successful_records, validate_manifest, write_csv)
 from providers import ask
 
@@ -47,11 +49,19 @@ def prepare_batch(directory, batch, tester, models, trials, questions):
     return manifest
 
 
-def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0, ask_fn=ask):
+def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0, ask_fn=ask, topics=None, workers=1):
     """Append durable captures; a rerun skips all successful slots. Failures can be retried."""
+    if type(workers) is not int or not 1 <= workers <= 3:
+        raise ValueError('Workers must be between 1 and 3.')
     success = successful_records(directory, manifest)
-    todo = [r for r in planned_rows(manifest) if r['record_id'] not in success]
-    print(f"{manifest['batch_id']}: {len(success)} saved; {len(todo)} remaining collection slots.")
+    if topics is not None and (not topics or set(topics) - set(TOPICS)):
+        raise ValueError('Select one or more valid topics.')
+    selected = [r for r in planned_rows(manifest) if topics is None or r['topic'] in topics]
+    todo = [r for r in selected if r['record_id'] not in success]
+    saved_selected = sum(r['record_id'] in success for r in selected)
+    print(f"{manifest['batch_id']}: {saved_selected} saved; {len(todo)} remaining collection slots.")
+    if topics is not None:
+        print(f"Selected topics: {', '.join(topics)}; {len(selected)} expected responses. Full batch design is unchanged.")
     if not spend:
         print('Plan only: no API calls. Add --spend to collect. Each slot can incur web-search charges too.')
         write_csv(directory / 'responses.csv', [success[k] for k in sorted(success)])
@@ -60,8 +70,9 @@ def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0,
                if any(r['provider'] == p for r in todo) and not keys.get(p)]
     if missing:
         raise ValueError('Missing API keys: ' + ', '.join(missing))
-    failures = 0
-    for row in todo[:limit] if limit is not None else todo:
+    log_lock = Lock()
+
+    def collect_one(row):
         row = {**{k: '' for k in FIELDS}, **row, 'collected_at_utc': now()}
         capture = {}
         try:
@@ -77,7 +88,6 @@ def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0,
             row['review_note'] = ('Other study clinic mentioned; review clinic-specific scoring passage.' if other
                                   else 'Review target-clinic relevance and scoring passage before sentiment analysis.')
         except Exception as exc:
-            failures += 1
             row.update(status='failed', review_required='yes', review_note='Collection failed; retry this slot.')
             message = str(exc)
             for secret in keys.values():
@@ -86,17 +96,28 @@ def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0,
             capture = {'error_type': type(exc).__name__, 'error_message': message[:1000]}
         row['completed_at_utc'] = now()
         # Keep original provider payload and extracted text together; export can be rebuilt from this log.
-        with (directory / 'attempts.jsonl').open('a', encoding='utf-8') as f:
-            f.write(json.dumps({'record': row, 'capture': capture}, ensure_ascii=False) + '\n')
-            f.flush(); os.fsync(f.fileno())
-        print(f"{row['source_run_id']}: {row['status']}")
+        with log_lock:
+            with (directory / 'attempts.jsonl').open('a', encoding='utf-8') as f:
+                f.write(json.dumps({'record': row, 'capture': capture}, ensure_ascii=False) + '\n')
+                f.flush(); os.fsync(f.fileno())
+            print(f"{row['source_run_id']}: {row['status']}")
         if delay:
             time.sleep(delay)
+        return int(row['status'] != 'success')
+
+    selected_todo = todo[:limit] if limit is not None else todo
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        failures = sum(pool.map(collect_one, selected_todo))
     success = successful_records(directory, manifest)
     write_csv(directory / 'responses.csv', [success[k] for k in sorted(success)])
     print(f"Saved {len(success)} successful responses to {directory / 'responses.csv'}")
+    remaining_selected = sum(r['record_id'] not in success for r in selected)
+    if remaining_selected:
+        print(f'{remaining_selected} selected slots remain. Resume the same command to collect them.')
+    elif topics is not None:
+        print('Selected topics complete. Other topics can be collected later using the same batch ID.')
     if len(success) < len(list(planned_rows(manifest))):
-        print('Batch incomplete. Resume the same command to collect remaining slots.')
+        print('Full five-topic batch incomplete; combine requires all topics unless --allow-partial is used.')
     return failures
 
 
@@ -106,11 +127,13 @@ def main():
     parser.add_argument('--tester', required=True)
     parser.add_argument('--config', type=Path, default=HERE / 'models.json', help='Shared provider-to-model JSON mapping')
     parser.add_argument('--trials', type=int, default=3)
+    parser.add_argument('--topics', nargs='+', choices=TOPICS, help='Collect only these topics now; the full batch manifest stays unchanged')
     parser.add_argument('--data-dir', type=Path, default=DEFAULT_DATA)
     parser.add_argument('--env-file', type=Path, default=HERE / '.env')
     parser.add_argument('--spend', action='store_true', help='Allow paid collection requests')
     parser.add_argument('--limit', type=int, help='At most this many unsaved slots this invocation')
     parser.add_argument('--delay', type=float, default=1.0)
+    parser.add_argument('--workers', type=int, choices=range(1, 4), default=1, help='Concurrent collection requests (default: 1; maximum: 3)')
     args = parser.parse_args()
     try:
         identifier(args.batch)
@@ -126,7 +149,7 @@ def main():
         # Read keys only for an explicitly paid run. Planning works entirely offline.
         env = load_env(args.env_file) if args.spend else {}
         keys = {p: os.environ.get(k) or env.get(k, '') for p, k in KEY_NAMES.items()} if args.spend else {}
-        failed = collect_batch(directory, manifest, keys, args.spend, args.limit, args.delay)
+        failed = collect_batch(directory, manifest, keys, args.spend, args.limit, args.delay, topics=args.topics, workers=args.workers)
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(1, f'Cannot collect: {exc}\n')
     if failed:

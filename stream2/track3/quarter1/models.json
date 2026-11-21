@@ -1,0 +1,5 @@
+{
+  "OpenAI": "chat-latest",
+  "Claude": "claude-sonnet-5-5",
+  "Gemini": "gemini-3.8-flash"
+}
