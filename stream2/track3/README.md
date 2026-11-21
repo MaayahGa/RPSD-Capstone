@@ -4,7 +4,7 @@ Track 3 has two independent workflows:
 
 | Folder | Purpose | Instructions |
 | --- | --- | --- |
-| `quarter1/` | Current Quarter 1 deliverable: topic-based RPSD/SDFC response collection, independent Collector1/Collector2 batches, and 10 CSVs for Keilani | [Quarter 1 guide](quarter1/README.md) |
+| `quarter1/` | Current Quarter 1 deliverable: topic-based RPSD/SDFC response collection, independent Collector1/Collector2 batches, and 10 CSVs for sentiment analysis | [Quarter 1 guide](quarter1/README.md) |
 | `pilot/` | Retained Quarter 2 pilot test: original six-question collection, visibility labels, fact checks, and exploratory notebooks | [Pilot guide](pilot/README.md) |
 
 Run terminal commands from `RPSD-Capstone/stream2/`.

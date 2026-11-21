@@ -5,8 +5,8 @@ We study RPSD's online reputation from two angles, each with its own data stream
 
 | | Data stream | What it captures | Report group |
 | --- | --- | --- | --- |
-| 1 | **Reviews** | What patients actually write about RPSD (Google, Yelp, and other permitted sources) | Track 1, Judy, Kang |
-| 2 | **LLM responses** | What AI assistants say about RPSD when patients ask them | Track 3, Keilani, Kate |
+| 1 | **Reviews** | What patients actually write about RPSD (Google, Yelp, and other permitted sources) | Review collection and analysis team |
+| 2 | **LLM responses** | What AI assistants say about RPSD when patients ask them | AI response collection and analysis team |
 
 ## Repository layout
 
@@ -133,7 +133,7 @@ way to reproduce a specific result. Ask the Track 3 team for the batch's private
 `autolabels-api-<timestamp>.csv`. Then, after the install steps above:
 
 ```
-python track3/pilot/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+python track3/pilot/prepare_eda.py --batch <batch> --tester <collector-id> --labels data/track3/autolabels-api-<timestamp>.csv
 # Then run track3/pilot/notebooks/02_explore_responses.ipynb with BATCH_ID = '<batch>'
 ```
 
@@ -143,7 +143,7 @@ Collect a new batch (**collection and labeling make paid API calls**; see `track
 cp -n track3/pilot/.env.example track3/pilot/.env                           # fill in your Google IDs
 # 1. Collect and label: run track3/pilot/notebooks/01_collect_and_label.ipynb with a new BATCH_ID
 # 2. Build the analysis input:
-python track3/pilot/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
+python track3/pilot/prepare_eda.py --batch <batch> --tester <collector-id> --labels data/track3/autolabels-api-<timestamp>.csv
 # 3. Analyze: run track3/pilot/notebooks/02_explore_responses.ipynb with the same BATCH_ID
 ```
 

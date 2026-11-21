@@ -108,7 +108,7 @@ def build_input(batch, tester, answers_path, labels_path, raw_dir, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--batch', help='Collection BATCH_ID, e.g. collector1-pilot-01')
-    parser.add_argument('--tester', help='Person who collected this batch')
+    parser.add_argument('--tester', help='Stable collector identifier, e.g. Collector1')
     parser.add_argument('--answers', type=Path, help='Defaults to data/track3/<batch>-answers.csv')
     parser.add_argument('--labels', type=Path, help='Explicit autolabels-api-*.csv export for this batch')
     parser.add_argument('--raw-dir', type=Path, help='Defaults to the answers CSV directory')

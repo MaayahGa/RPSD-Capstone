@@ -132,8 +132,8 @@ files or check model access. `--max N` limits labeling, not collection.
 | `autolabel-cache.jsonl` | Saved judge results used to resume labeling |
 | `handlabels-normalized-*.csv`, `autolabel-vs-human-*.csv` | Optional manual-label normalization and visibility agreement comparisons |
 
-The raw filenames use the **batch ID**, not a separate tester prefix. Include your
-name in a unique batch ID and pass the tester separately during EDA preparation.
+The raw filenames use the **batch ID**, not a separate tester prefix. Use a stable collector identifier in a unique batch ID and pass that identifier
+separately as the tester during EDA preparation.
 
 ## 2 Generate the EDA input
 

@@ -74,7 +74,7 @@ def combine(directories, output, allow_partial=False, allow_model_differences=Fa
         'sentiment_status': 'Unscored; question framing is not response sentiment.',
         'review': 'Review target-clinic relevance and passages before sentiment scoring. See review_note.'})
     print(f'{len(rows)} responses from {len(manifests)} unique batches; {missing} missing/failed slots.')
-    print(f'Master, coverage, summary: {output}\n10 CSVs for Keilani: {output / "exports"}')
+    print(f'Master, coverage, summary: {output}\n10 CSVs for sentiment analysis: {output / "exports"}')
     return rows
 
 

@@ -149,7 +149,7 @@ exports/
   sdfc_communication.csv
 ```
 
-Send Keilani the **10 CSVs in `exports/`**, plus `handoff_summary.json` for counts
+Share the **10 CSVs in `exports/`** with the sentiment analysis team, plus `handoff_summary.json` for counts
 and completeness. Each CSV contains both collectors and both question framings.
 For two complete three-provider, three-trial batches, the master has 720 rows and
 each topic/clinic file has 72. Independent identical answers remain separate.
@@ -167,7 +167,7 @@ and records the differences in the summary. Keep these groups separate in analys
 Actual returned model versions remain in each row even when requested IDs match.
 
 Use `--output PATH` for a separate output directory. Repeating a successful merge
-replaces generated outputs; save Keilani's scored copies elsewhere. A failed merge
+replaces generated outputs; save scored copies elsewhere. A failed merge
 does not update response exports; any previous successful exports remain from the
 previous run. Check the exit status and summary before sharing them.
 
@@ -185,7 +185,7 @@ flag. This flag is a text heuristic, not a clinic-identity or accuracy judgment.
 Search is enabled but providers may choose not to search; `search_count` retains
 the observed count. API outputs should be identified as API outputs in the dashboard.
 
-The following columns are intentionally blank for Keilani:
+The following columns are intentionally blank for the sentiment analysis team:
 
 ```text
 sentiment_score, sentiment_label, sentiment_method, sentiment_version
