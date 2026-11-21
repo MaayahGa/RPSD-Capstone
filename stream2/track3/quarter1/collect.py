@@ -102,7 +102,7 @@ def collect_batch(directory, manifest, keys, spend=False, limit=None, delay=1.0,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--batch', required=True, help='Unique ID, e.g. siya-q1-01')
+    parser.add_argument('--batch', required=True, help='Unique ID, e.g. collector1-q1-01')
     parser.add_argument('--tester', required=True)
     parser.add_argument('--config', type=Path, default=HERE / 'models.json', help='Shared provider-to-model JSON mapping')
     parser.add_argument('--trials', type=int, default=3)

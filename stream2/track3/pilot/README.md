@@ -141,10 +141,10 @@ Use the answers CSV, the API-label export for that batch, and its raw JSONL file
 Obtain these privately from the collector or use your own saved run. No API keys,
 Google access, or new model calls are required for this step.
 
-For example, to prepare Siya's saved batch:
+For example, to prepare a saved batch from one collector:
 
 ```bash
-python track3/pilot/prepare_eda.py --batch siya-pilot-01 --tester Siya --labels data/track3/siya-pilot-01-labels.csv
+python track3/pilot/prepare_eda.py --batch collector1-pilot-01 --tester Collector1 --labels data/track3/collector1-pilot-01-labels.csv
 ```
 
 Replace these values with your batch and label file. The normal label export is

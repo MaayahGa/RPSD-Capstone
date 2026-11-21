@@ -30,7 +30,7 @@ class WorkflowTests(unittest.TestCase):
                 'citation_urls': '["https://example.org/review"]', 'model_returned': model + '-resolved',
                 'search_count': 1, 'raw_response': {'original': 'provider payload'}}
 
-    def batch(self, batch='siya-q1-01', tester='Siya', models=None, trials=1, complete=True):
+    def batch(self, batch='collector1-q1-01', tester='Collector1', models=None, trials=1, complete=True):
         d = self.root / 'batches' / batch
         m = prepare_batch(d, batch, tester, models or {'OpenAI': 'test-model'}, trials, self.questions)
         with redirect_stdout(io.StringIO()):
@@ -47,7 +47,7 @@ class WorkflowTests(unittest.TestCase):
     def test_two_full_batches_ten_files_and_resume(self):
         models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
         a, ma = self.batch(models=models, trials=3)
-        b, _ = self.batch('audrey-q1-01', 'Audrey', models, trials=3)
+        b, _ = self.batch('collector2-q1-01', 'Collector2', models, trials=3)
         self.assertEqual(self.calls, 720)
         with redirect_stdout(io.StringIO()):
             collect_batch(a, ma, {'OpenAI': 'x'}, spend=True, delay=0, ask_fn=self.fake)
@@ -61,7 +61,7 @@ class WorkflowTests(unittest.TestCase):
             with path.open(encoding='utf-8-sig', newline='') as f:
                 data = list(csv.DictReader(f))
             self.assertEqual(len(data), 72)
-            self.assertEqual({r['tester'] for r in data}, {'Siya', 'Audrey'})
+            self.assertEqual({r['tester'] for r in data}, {'Collector1', 'Collector2'})
             self.assertEqual({r['question_framing'] for r in data}, {'neutral', 'negative'})
             self.assertEqual(data[0]['response_text'], '=Original, "answer"\nSecond line — preserved.')
             self.assertEqual(data[0]['sentiment_label'], '')
@@ -97,15 +97,15 @@ class WorkflowTests(unittest.TestCase):
     def test_changed_settings_refused(self):
         d, m = self.batch(complete=False)
         with self.assertRaisesRegex(ValueError, 'changed'):
-            prepare_batch(d, m['batch_id'], 'Audrey', m['models'], 1, self.questions)
+            prepare_batch(d, m['batch_id'], 'Collector2', m['models'], 1, self.questions)
         changed = [dict(q) for q in self.questions]
         changed[0]['prompt_text'] += ' Changed.'
         with self.assertRaisesRegex(ValueError, 'changed'):
-            prepare_batch(d, m['batch_id'], 'Siya', m['models'], 1, changed)
+            prepare_batch(d, m['batch_id'], 'Collector1', m['models'], 1, changed)
 
     def test_changed_question_set_and_models_refused(self):
         a, _ = self.batch()
-        b, _ = self.batch('audrey-q1-01', 'Audrey', {'OpenAI': 'different-model'})
+        b, _ = self.batch('collector2-q1-01', 'Collector2', {'OpenAI': 'different-model'})
         with self.assertRaisesRegex(ValueError, 'Models'):
             combine([a, b], self.root / 'out')
         from common import fingerprint
@@ -141,7 +141,7 @@ class WorkflowTests(unittest.TestCase):
         script = Path(__file__).resolve().parents[1] / 'collect.py'
         config = self.root / 'models.json'
         config.write_text(json.dumps({'OpenAI': 'offline-test-model'}))
-        command = [sys.executable, str(script), '--batch', 'cli-test', '--tester', 'Siya',
+        command = [sys.executable, str(script), '--batch', 'cli-test', '--tester', 'Collector1',
                    '--config', str(config), '--data-dir', str(self.root / 'cli-data')]
         run = subprocess.run(command, capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, run.stderr)
@@ -158,7 +158,7 @@ class WorkflowTests(unittest.TestCase):
         changed = [dict(q) for q in self.questions]
         changed[0]['prompt_text'] += ' Different wording.'
         b = self.root / 'batches' / 'changed'
-        m = prepare_batch(b, 'changed', 'Audrey', {'OpenAI': 'test-model'}, 1, changed)
+        m = prepare_batch(b, 'changed', 'Collector2', {'OpenAI': 'test-model'}, 1, changed)
         with redirect_stdout(io.StringIO()):
             collect_batch(b, m, {'OpenAI': 'x'}, True, delay=0, ask_fn=self.fake)
         with self.assertRaisesRegex(ValueError, 'Question sets differ'):
@@ -166,7 +166,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_model_difference_override_is_recorded(self):
         a, _ = self.batch()
-        b, _ = self.batch('audrey-q1-01', 'Audrey', {'OpenAI': 'different-model'})
+        b, _ = self.batch('collector2-q1-01', 'Collector2', {'OpenAI': 'different-model'})
         with redirect_stdout(io.StringIO()):
             rows = combine([a, b], self.root / 'out', allow_model_differences=True)
         self.assertEqual(len(rows), 80)

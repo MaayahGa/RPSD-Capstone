@@ -70,7 +70,7 @@ def load_env(path=None):
     return env
 
 def sheet_tabs_from_env(value):
-    """'Siya:111,Audrey:222' -> {'Siya': '111', 'Audrey': '222'}"""
+    """'Collector1:111,Collector2:222' -> {'Collector1': '111', 'Collector2': '222'}"""
     return dict(part.split(':', 1) for part in (value or '').split(',') if ':' in part)
 
 def raw_path(provider):

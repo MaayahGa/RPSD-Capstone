@@ -20,8 +20,8 @@ cp -n track3/quarter1/models.example.json track3/quarter1/models.json
 ```
 
 Replace each placeholder in `models.json` with a search-capable API model ID your
-account can access. Use exactly the same file for Siya and Audrey. Remove a
-provider entry if both of you agree not to collect it. Model IDs are explicit
+account can access. Use exactly the same file for every collector. Remove a
+provider entry if the team agrees not to collect it. Model IDs are explicit
 rather than inherited from the pilot. Placeholder values are rejected.
 
 Copy the Quarter 1 credential template:
@@ -45,16 +45,16 @@ it does not call a sentiment judge or the pilot fact-checker.
 
 ## 2. Plan each independent batch (free, offline)
 
-Siya:
+Collector 1:
 
 ```bash
-python3 track3/quarter1/collect.py --batch siya-q1-01 --tester Siya
+python3 track3/quarter1/collect.py --batch collector1-q1-01 --tester Collector1
 ```
 
-Audrey, on her own computer:
+Collector 2, on a separate computer:
 
 ```bash
-python3 track3/quarter1/collect.py --batch audrey-q1-01 --tester Audrey
+python3 track3/quarter1/collect.py --batch collector2-q1-01 --tester Collector2
 ```
 
 These commands create each batch's frozen `manifest.json` and print how many
@@ -63,16 +63,16 @@ three trials (the default), each batch has 360 collection slots.
 
 ## 3. Collect responses
 
-Siya:
+Collector 1:
 
 ```bash
-python3 track3/quarter1/collect.py --batch siya-q1-01 --tester Siya --spend
+python3 track3/quarter1/collect.py --batch collector1-q1-01 --tester Collector1 --spend
 ```
 
-Audrey:
+Collector 2:
 
 ```bash
-python3 track3/quarter1/collect.py --batch audrey-q1-01 --tester Audrey --spend
+python3 track3/quarter1/collect.py --batch collector2-q1-01 --tester Collector2 --spend
 ```
 
 `--spend` explicitly enables paid generation and provider web-search calls.
@@ -86,6 +86,10 @@ within a slot; Claude may require continuation requests to finish one answer.
 Failures make the command exit unsuccessfully and are saved in the private log.
 Do not run two collection processes against the same batch simultaneously.
 
+The `--tester` value is a collector identifier; use a stable pseudonym such as
+`Collector1`, not a personal name. Add more collectors with unique batch IDs and
+include their folders in the same merge command.
+
 The batch manifest freezes the tester, providers/models, trial count, and exact
 questions. Changing any of them requires a new batch ID. Use a new ID for an
 independent new round, even if the settings are identical. A transport interruption
@@ -98,18 +102,18 @@ Default location on local `main`:
 
 ```text
 stream2/data/track3/quarter1/batches/
-  siya-q1-01/
+  collector1-q1-01/
     manifest.json       frozen design and provenance
     attempts.jsonl      original provider payloads, full answers, failures
     responses.csv       successful responses; regenerated from captures
-  audrey-q1-01/
+  collector2-q1-01/
     manifest.json
     attempts.jsonl
     responses.csv
 ```
 
-Audrey sends her entire `audrey-q1-01` folder to the person doing the merge.
-Place both folders under the same `batches/` directory. No API keys or `.env`
+Each collector shares the complete batch folder with the person doing the merge.
+Place the collected batch folders under the same `batches/` directory. No API keys or `.env`
 files need to be shared. All real outputs live under gitignored `data/`.
 `--data-dir PATH` can select a different private data location for collection.
 
@@ -122,7 +126,7 @@ edited `responses.csv` as a new original capture. It never needs API keys.
 From `stream2/`:
 
 ```bash
-python3 track3/quarter1/combine_batches.py --batches data/track3/quarter1/batches/siya-q1-01 data/track3/quarter1/batches/audrey-q1-01
+python3 track3/quarter1/combine_batches.py --batches data/track3/quarter1/batches/collector1-q1-01 data/track3/quarter1/batches/collector2-q1-01
 ```
 
 You can also pass each folder's `responses.csv` path to `--batches`.
