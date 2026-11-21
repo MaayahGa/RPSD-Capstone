@@ -1,5 +1,13 @@
 # Track 3: What AI assistants say about RPSD
 
+> **Quarter 2 pilot test:** The existing collection, visibility labeling, fact-checking,
+> and EDA workflow below is retained for potential Quarter 2 use. Its files remain
+> in place so existing commands, notebooks, and saved batches continue to work.
+>
+> **Quarter 1 deliverable:** See [`quarter1/README.md`](quarter1/README.md) for the
+> separate topic-based RPSD/SDFC response collection and combined CSV handoff plan.
+> Quarter 1 has independent collection and merge scripts with an offline test suite.
+
 Part of **Report B** (Track 3 + Tracks 2/4). We ask AI assistants the same 6 patient questions, 3 separate trials each, in two ways:
 - **Manual browser runs:** each tester types the questions into the AI websites (ChatGPT, Claude, Gemini), using a fresh incognito session per run, logged out where possible, and pastes the full answer into the tracker sheet.
 - **API runs:** `run.py collect` sends the same questions to the OpenAI, Anthropic and Gemini APIs, with web search on.

@@ -1,0 +1,200 @@
+"""Offline integration checks: independent collection, resume, validation, and handoff."""
+import csv
+import io
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common import load_questions, planned_rows
+from collect import collect_batch, prepare_batch
+from combine_batches import combine
+from providers import ask
+
+
+class WorkflowTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.questions = load_questions()
+        self.calls = 0
+
+    def fake(self, provider, model, prompt, key):
+        self.calls += 1
+        return {'response_text': '=Original, "answer"\nSecond line — preserved.',
+                'citation_urls': '["https://example.org/review"]', 'model_returned': model + '-resolved',
+                'search_count': 1, 'raw_response': {'original': 'provider payload'}}
+
+    def batch(self, batch='siya-q1-01', tester='Siya', models=None, trials=1, complete=True):
+        d = self.root / 'batches' / batch
+        m = prepare_batch(d, batch, tester, models or {'OpenAI': 'test-model'}, trials, self.questions)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, {p: 'fake-key' for p in m['models']}, spend=complete, delay=0, ask_fn=self.fake)
+        return d, m
+
+    def test_grid_matches_proposal(self):
+        self.assertEqual(len(self.questions), 40)
+        self.assertEqual(len({q['question_id'] for q in self.questions}), 40)
+        self.assertIn('What is Reproductive Partners Fertility Center in San Diego known for?',
+                      [q['prompt_text'] for q in self.questions])
+        self.assertEqual(sum(q['question_framing'] == 'negative' for q in self.questions), 20)
+
+    def test_two_full_batches_ten_files_and_resume(self):
+        models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
+        a, ma = self.batch(models=models, trials=3)
+        b, _ = self.batch('audrey-q1-01', 'Audrey', models, trials=3)
+        self.assertEqual(self.calls, 720)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(a, ma, {'OpenAI': 'x'}, spend=True, delay=0, ask_fn=self.fake)
+            rows = combine([a, b, a], self.root / 'out')
+        self.assertEqual(self.calls, 720)
+        self.assertEqual(len(rows), 720)
+        self.assertEqual(len({r['record_id'] for r in rows}), 720)
+        exports = sorted((self.root / 'out' / 'exports').glob('*.csv'))
+        self.assertEqual(len(exports), 10)
+        for path in exports:
+            with path.open(encoding='utf-8-sig', newline='') as f:
+                data = list(csv.DictReader(f))
+            self.assertEqual(len(data), 72)
+            self.assertEqual({r['tester'] for r in data}, {'Siya', 'Audrey'})
+            self.assertEqual({r['question_framing'] for r in data}, {'neutral', 'negative'})
+            self.assertEqual(data[0]['response_text'], '=Original, "answer"\nSecond line — preserved.')
+            self.assertEqual(data[0]['sentiment_label'], '')
+        self.assertTrue(json.loads((self.root / 'out' / 'handoff_summary.json').read_text())['complete'])
+
+    def test_dry_run_no_network(self):
+        d, m = self.batch(complete=False)
+        self.assertEqual(self.calls, 0)
+        self.assertFalse((d / 'attempts.jsonl').exists())
+        with redirect_stdout(io.StringIO()), self.assertRaisesRegex(ValueError, '40 missing'):
+            combine([d], self.root / 'out')
+        self.assertTrue((self.root / 'out' / 'coverage_report.csv').exists())
+        self.assertFalse((self.root / 'out' / 'exports').exists())
+
+    def test_fail_retry_limit_and_partial(self):
+        d, m = self.batch(complete=False)
+        with redirect_stdout(io.StringIO()):
+            errors = collect_batch(d, m, {'OpenAI': 'secret'}, True, limit=1, delay=0,
+                                   ask_fn=lambda *a: (_ for _ in ()).throw(RuntimeError('bad secret')))
+        self.assertEqual(errors, 1)
+        self.assertNotIn('bad secret', (d / 'attempts.jsonl').read_text())
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, {'OpenAI': 'x'}, True, limit=1, delay=0, ask_fn=self.fake)
+            rows = combine([d / 'responses.csv'], self.root / 'out', allow_partial=True)
+        self.assertEqual(len(rows), 1)
+        summary = json.loads((self.root / 'out' / 'handoff_summary.json').read_text())
+        self.assertEqual(summary['missing_or_failed_slots'], 39)
+        self.assertFalse(summary['complete'])
+        with redirect_stdout(io.StringIO()):
+            collect_batch(d, m, {'OpenAI': 'x'}, True, delay=0, ask_fn=self.fake)
+        self.assertEqual(self.calls, 40)
+
+    def test_changed_settings_refused(self):
+        d, m = self.batch(complete=False)
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            prepare_batch(d, m['batch_id'], 'Audrey', m['models'], 1, self.questions)
+        changed = [dict(q) for q in self.questions]
+        changed[0]['prompt_text'] += ' Changed.'
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            prepare_batch(d, m['batch_id'], 'Siya', m['models'], 1, changed)
+
+    def test_changed_question_set_and_models_refused(self):
+        a, _ = self.batch()
+        b, _ = self.batch('audrey-q1-01', 'Audrey', {'OpenAI': 'different-model'})
+        with self.assertRaisesRegex(ValueError, 'Models'):
+            combine([a, b], self.root / 'out')
+        from common import fingerprint
+        manifest_path = b / 'manifest.json'
+        m = json.loads(manifest_path.read_text())
+        m['questions'][0]['prompt_text'] += ' Changed.'
+        m['question_set_sha256'] = fingerprint(m['questions'])
+        manifest_path.write_text(json.dumps(m))
+        with self.assertRaisesRegex(ValueError, 'metadata'):
+            combine([a, b], self.root / 'out', allow_model_differences=True)
+
+    def test_duplicate_conflicts_and_damaged_log(self):
+        a, _ = self.batch()
+        path = a / 'attempts.jsonl'
+        first = json.loads(path.read_text().splitlines()[0])
+        first['record']['response_text'] = 'Conflicting answer'
+        first['capture']['response_text'] = 'Conflicting answer'
+        with path.open('a') as f:
+            f.write(json.dumps(first) + '\n')
+        with self.assertRaisesRegex(ValueError, 'conflicting'):
+            combine([a], self.root / 'out')
+        path.write_text('{unfinished')
+        with self.assertRaisesRegex(ValueError, 'damaged'):
+            combine([a], self.root / 'out')
+
+    def test_output_cannot_overwrite_batch(self):
+        a, _ = self.batch()
+        with self.assertRaisesRegex(ValueError, 'separate'):
+            combine([a], a)
+
+    def test_cli_offline_plan_and_missing_config(self):
+        import subprocess
+        script = Path(__file__).resolve().parents[1] / 'collect.py'
+        config = self.root / 'models.json'
+        config.write_text(json.dumps({'OpenAI': 'offline-test-model'}))
+        command = [sys.executable, str(script), '--batch', 'cli-test', '--tester', 'Siya',
+                   '--config', str(config), '--data-dir', str(self.root / 'cli-data')]
+        run = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('120 remaining', run.stdout)
+        self.assertIn('no API calls', run.stdout)
+        self.assertTrue((self.root / 'cli-data/batches/cli-test/manifest.json').exists())
+        config.write_text(json.dumps({'OpenAI': 'REPLACE_WITH_MODEL'}))
+        run = subprocess.run(command, capture_output=True, text=True)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('Invalid provider/model', run.stderr)
+
+    def test_question_mismatch_even_when_version_unchanged(self):
+        a, _ = self.batch()
+        changed = [dict(q) for q in self.questions]
+        changed[0]['prompt_text'] += ' Different wording.'
+        b = self.root / 'batches' / 'changed'
+        m = prepare_batch(b, 'changed', 'Audrey', {'OpenAI': 'test-model'}, 1, changed)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(b, m, {'OpenAI': 'x'}, True, delay=0, ask_fn=self.fake)
+        with self.assertRaisesRegex(ValueError, 'Question sets differ'):
+            combine([a, b], self.root / 'out')
+
+    def test_model_difference_override_is_recorded(self):
+        a, _ = self.batch()
+        b, _ = self.batch('audrey-q1-01', 'Audrey', {'OpenAI': 'different-model'})
+        with redirect_stdout(io.StringIO()):
+            rows = combine([a, b], self.root / 'out', allow_model_differences=True)
+        self.assertEqual(len(rows), 80)
+        self.assertTrue(json.loads((self.root / 'out/handoff_summary.json').read_text())['collection_settings_differ'])
+
+    def test_provider_parsing_and_incomplete_exclusion(self):
+        cases = {
+            'OpenAI': {'status': 'completed', 'model': 'resolved', 'output': [
+                {'type': 'web_search_call'}, {'type': 'message', 'content': [
+                    {'type': 'output_text', 'text': 'Answer', 'annotations': [
+                        {'type': 'url_citation', 'url': 'https://example.org'}]}]}]},
+            'Claude': {'stop_reason': 'end_turn', 'model': 'resolved', 'content': [
+                {'type': 'text', 'text': 'Answer', 'citations': [{'url': 'https://example.org'}]}]},
+            'Gemini': {'modelVersion': 'resolved', 'candidates': [{'finishReason': 'STOP',
+                'content': {'parts': [{'text': 'Answer'}]}, 'groundingMetadata': {
+                    'webSearchQueries': ['query'], 'groundingChunks': [{'web': {'uri': 'https://example.org'}}]}}]}}
+        for provider, payload in cases.items():
+            with self.subTest(provider=provider), patch('providers.post', return_value=payload) as request:
+                r = ask(provider, 'requested', 'prompt', 'fake-key')
+                self.assertEqual(r['response_text'], 'Answer')
+                self.assertEqual(json.loads(r['citation_urls']), ['https://example.org'])
+                self.assertEqual(r['model_returned'], 'resolved')
+                self.assertEqual(request.call_count, 1)
+        with patch('providers.post', return_value={'status': 'incomplete'}), self.assertRaises(ValueError):
+            ask('OpenAI', 'requested', 'prompt', 'fake-key')
+        with patch('providers.post', return_value={'candidates': [{'finishReason': 'MAX_TOKENS'}]}), self.assertRaises(ValueError):
+            ask('Gemini', 'requested', 'prompt', 'fake-key')
+
+
+if __name__ == '__main__':
+    unittest.main()
