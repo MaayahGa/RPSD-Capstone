@@ -9,7 +9,9 @@ from common import (CLINICS, DEFAULT_DATA, TOPICS, atomic_json, fingerprint, pla
                     successful_records, validate_manifest, write_csv)
 
 
-def combine(directories, output, allow_partial=False, allow_model_differences=False):
+def combine(directories, output, allow_partial=False, allow_model_differences=False, complete_only=False):
+    if complete_only and allow_partial:
+        raise ValueError('--complete-only and --allow-partial cannot be used together.')
     manifests, records, batches = [], {}, {}
     coverage = []
     for directory in directories:
@@ -49,32 +51,63 @@ def combine(directories, output, allow_partial=False, allow_model_differences=Fa
     missing = sum(r['status'] != 'success' for r in coverage)
     # Coverage is useful even when incomplete inputs prevent final exports.
     write_csv(output / 'coverage_report.csv', coverage, list(coverage[0]))
-    if missing and not allow_partial:
+    if missing and not allow_partial and not complete_only:
         raise ValueError(f'{missing} missing/failed slots; see {output / "coverage_report.csv"}. Resume collection, or use --allow-partial for an explicitly incomplete handoff. No response exports were updated.')
     if not records:
         raise ValueError('No successful responses to export.')
-    rows = [records[k] for k in sorted(records)]
+    group_coverage = defaultdict(list)
+    for row in coverage:
+        group_coverage[row['clinic_id'], row['topic']].append(row)
+    complete_groups = {key for key, group in group_coverage.items()
+                       if all(r['status'] == 'success' for r in group)}
+    selected_groups = complete_groups if complete_only else set(group_coverage)
+    if not selected_groups:
+        raise ValueError('No clinic/topic groups are complete across all input batches.')
+    rows = [records[k] for k in sorted(records)
+            if (records[k]['clinic_id'], records[k]['topic']) in selected_groups]
     groups = defaultdict(list)
     for row in rows:
         groups[row['clinic_id'], row['topic']].append(row)
+    desired_files = {f'{clinic}_{topic}.csv' for clinic, topic in selected_groups}
+    existing_files = {p.name for p in (output / 'exports').glob('*.csv')}
+    if existing_files - desired_files:
+        raise ValueError('Output contains exports outside the selected scope. Use a new output directory.')
     write_csv(output / 'responses_master.csv', rows)
     counts = {}
+    group_report = []
     for clinic in CLINICS:
         for topic in TOPICS:
+            key = (clinic, topic)
+            expected_group = group_coverage[key]
+            observed = sum(r['status'] == 'success' for r in expected_group)
+            group_report.append({'clinic_id': clinic, 'topic': topic,
+                                 'available_responses': observed, 'expected_responses': len(expected_group),
+                                 'missing_responses': len(expected_group) - observed,
+                                 'complete_across_batches': key in complete_groups,
+                                 'included_in_export': key in selected_groups})
+            if key not in selected_groups:
+                continue
             name = f'{clinic}_{topic}.csv'
-            group = groups[clinic, topic]
+            group = groups[key]
             write_csv(output / 'exports' / name, group)
             counts[name] = len(group)
+    write_csv(output / 'group_coverage.csv', group_report, list(group_report[0]))
+    expected_selected = sum(len(group_coverage[key]) for key in selected_groups)
     atomic_json(output / 'handoff_summary.json', {
         'schema_version': 1, 'complete': not missing, 'missing_or_failed_slots': missing,
+        'export_mode': 'complete_groups_only' if complete_only else 'all_groups',
+        'selected_scope_complete': len(rows) == expected_selected,
+        'expected_exported_response_count': expected_selected,
+        'available_response_count_all_groups': len(records),
+        'excluded_groups': [r for r in group_report if not r['included_in_export']],
         'response_count': len(rows), 'expected_response_count': len(coverage),
         'batches': [{k: m[k] for k in ('batch_id', 'tester', 'models', 'trials', 'question_set_sha256')}
                     for m in manifests],
         'collection_settings_differ': len(settings) > 1, 'files': counts,
         'sentiment_status': 'Unscored; question framing is not response sentiment.',
         'review': 'Review target-clinic relevance and passages before sentiment scoring. See review_note.'})
-    print(f'{len(rows)} responses from {len(manifests)} unique batches; {missing} missing/failed slots.')
-    print(f'Master, coverage, summary: {output}\n10 CSVs for sentiment analysis: {output / "exports"}')
+    print(f'{len(rows)} exported responses from {len(manifests)} unique batches; {missing} missing/failed slots across the full study.')
+    print(f'Master, coverage, summary: {output}\n{len(counts)} CSVs for sentiment analysis: {output / "exports"}')
     return rows
 
 
@@ -85,9 +118,10 @@ def main():
     parser.add_argument('--output', type=Path, default=DEFAULT_DATA / 'combined')
     parser.add_argument('--allow-partial', action='store_true')
     parser.add_argument('--allow-model-differences', action='store_true')
+    parser.add_argument('--complete-only', action='store_true', help='Export only clinic/topic groups complete across every input batch and all planned providers/trials')
     args = parser.parse_args()
     try:
-        combine(args.batches, args.output, args.allow_partial, args.allow_model_differences)
+        combine(args.batches, args.output, args.allow_partial, args.allow_model_differences, args.complete_only)
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(1, f'Cannot combine: {exc}\n')
 

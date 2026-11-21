@@ -205,6 +205,21 @@ replaces generated outputs; save scored copies elsewhere. A failed merge
 does not update response exports; any previous successful exports remain from the
 previous run. Check the exit status and summary before sharing them.
 
+### Combine only groups complete in every batch
+
+While waiting for missing providers, export just the clinic/topic groups with
+all planned questions, framings, providers, and trials present in every batch:
+
+```bash
+python3 track3/quarter1/combine_batches.py --batches data/track3/quarter1/batches/collector1-q1-01 data/track3/quarter1/batches/collector2-q1-01 --complete-only --output data/track3/quarter1/combined_complete
+```
+
+This creates only the complete groups' CSVs and a master table containing those
+same rows. `group_coverage.csv` explains which groups were included or excluded.
+`selected_scope_complete` in the summary describes the exported subset;
+`complete` continues to describe the entire planned study. Source batches and
+incomplete responses are preserved. Do not combine this flag with `--allow-partial`.
+
 ## CSV contract and sentiment handoff
 
 Each row contains a batch-prefixed `record_id`, source run ID, tester, batch,

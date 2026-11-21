@@ -230,6 +230,45 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(len(rows), 80)
         self.assertTrue(json.loads((self.root / 'out/handoff_summary.json').read_text())['collection_settings_differ'])
 
+    def test_complete_only_keeps_groups_complete_in_both_batches(self):
+        models = {'OpenAI': 'test-openai', 'Claude': 'test-claude', 'Gemini': 'test-gemini'}
+        a, _ = self.batch(models=models, trials=3)
+        b, _ = self.batch('collector2-q1-01', 'Collector2', models, trials=3)
+        keep = {('rpsd', 'general'), ('rpsd', 'billing'), ('rpsd', 'scheduling'), ('sdfc', 'general')}
+        for directory in (a, b):
+            log = directory / 'attempts.jsonl'
+            captures = [json.loads(line) for line in log.read_text().splitlines()]
+            retained = [x for x in captures if (x['record']['clinic_id'], x['record']['topic']) in keep]
+            if directory == a:
+                retained += [next(x for x in captures if x['record']['topic'] == 'safety')]
+            log.write_text(''.join(json.dumps(x) + '\n' for x in retained))
+        with redirect_stdout(io.StringIO()):
+            rows = combine([a, b], self.root / 'out', complete_only=True)
+        self.assertEqual(len(rows), 288)
+        exports = list((self.root / 'out/exports').glob('*.csv'))
+        self.assertEqual(len(exports), 4)
+        self.assertEqual({(r['clinic_id'], r['topic']) for r in rows}, keep)
+        for file in exports:
+            with file.open(encoding='utf-8-sig', newline='') as stream:
+                group = list(csv.DictReader(stream))
+            self.assertEqual(len(group), 72)
+            self.assertEqual({r['tester'] for r in group}, {'Collector1', 'Collector2'})
+        summary = json.loads((self.root / 'out/handoff_summary.json').read_text())
+        self.assertTrue(summary['selected_scope_complete'])
+        self.assertFalse(summary['complete'])
+        self.assertEqual(summary['expected_exported_response_count'], 288)
+        self.assertEqual(summary['available_response_count_all_groups'], 289)
+        self.assertEqual(len(summary['excluded_groups']), 6)
+
+    def test_complete_only_rejects_no_complete_groups_and_mixed_flags(self):
+        a, m = self.batch(complete=False)
+        with redirect_stdout(io.StringIO()):
+            collect_batch(a, m, {'OpenAI': 'fake-key'}, True, limit=1, delay=0, ask_fn=self.fake)
+        with self.assertRaisesRegex(ValueError, 'No clinic/topic groups'):
+            combine([a], self.root / 'out', complete_only=True)
+        with self.assertRaisesRegex(ValueError, 'cannot be used together'):
+            combine([a], self.root / 'out', complete_only=True, allow_partial=True)
+
     def test_provider_error_codes_do_not_expose_response_body(self):
         from urllib.error import HTTPError
         from providers import post
