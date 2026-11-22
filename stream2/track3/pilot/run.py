@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """Track 3 build script: what AI assistants say about RPSD.
 
-    python track3/run.py test                 # offline + free: runs the full pipeline on the synthetic sample
-    python track3/run.py collect [--spend]    # ask the 6 questions to each AI (paid only with --spend)
-    python track3/run.py label   [--spend]    # auto-label + fact-check every answer (paid only with --spend)
-    python track3/run.py export               # tracker CSVs + comparison with hand labels (free)
-    python track3/run.py all     [--spend]    # collect, label, export
+    python track3/pilot/run.py test                 # offline + free: runs the full pipeline on the synthetic sample
+    python track3/pilot/run.py collect [--spend]    # ask the 6 questions to each AI (paid only with --spend)
+    python track3/pilot/run.py label   [--spend]    # auto-label + fact-check every answer (paid only with --spend)
+    python track3/pilot/run.py export               # tracker CSVs + comparison with hand labels (free)
+    python track3/pilot/run.py all     [--spend]    # collect, label, export
 
 Without --spend every target is free: paid steps only report what they would send.
-Real runs need track3/.env (copy track3/.env.example). Results go to data/track3/ (gitignored).
+Real runs need track3/pilot/.env (copy track3/pilot/.env.example). Results go to data/track3/ (gitignored).
 """
 import argparse, shutil, sys
 from pathlib import Path
@@ -67,7 +67,7 @@ def run_test():
     failed = [n for n, ok in checks if not ok]
     if failed and T.SKIPPED:
         print('\nThe sample judge results no longer match the rules (RULES_VERSION / CHECK_RULES_VERSION changed?). '
-              'Rebuild them with: python track3/tests/make_testdata.py')
+              'Rebuild them with: python track3/pilot/tests/make_testdata.py')
     print(f'\n{len(checks) - len(failed)}/{len(checks)} checks passed. Outputs: {out}')
     return 1 if failed else 0
 
@@ -87,7 +87,7 @@ def configure_real(args):
     T.status()
     missing = [n for n, v in [('RPSD_TRACKER_SHEET_ID', T.SHEET_ID), ('RPSD_FACT_SHEET_DOC_ID', T.FACT_DOC_ID)] if not v]
     if missing and args.target in ('label', 'export', 'all'):
-        sys.exit(f'Missing {", ".join(missing)} in track3/.env (copy track3/.env.example).')
+        sys.exit(f'Missing {", ".join(missing)} in track3/pilot/.env (copy track3/pilot/.env.example).')
 
 
 def main():

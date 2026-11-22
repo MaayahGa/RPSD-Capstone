@@ -5,8 +5,8 @@ We study RPSD's online reputation from two angles, each with its own data stream
 
 | | Data stream | What it captures | Report group |
 | --- | --- | --- | --- |
-| 1 | **Reviews** | What patients actually write about RPSD (Google, Yelp, and other permitted sources) | Track 1, Judy, Kang |
-| 2 | **LLM responses** | What AI assistants say about RPSD when patients ask them | Track 3, Keilani, Kate |
+| 1 | **Reviews** | What patients actually write about RPSD (Google, Yelp, and other permitted sources) | Review collection and analysis team |
+| 2 | **LLM responses** | What AI assistants say about RPSD when patients ask them | AI response collection and analysis team |
 
 ## Repository layout
 
@@ -67,6 +67,16 @@ python reputation_item.py export      # writes data/exports/*.csv and *.json
 
 ## Data Stream 2: LLM Responses
 
+The current **Quarter 1 deliverable** lives in
+[`stream2/track3/quarter1/`](stream2/track3/quarter1/README.md). It collects 40
+clinic/topic/framing prompts in separate tester batches and combines them into
+10 CSVs for sentiment analysis. See its guide for setup and collection commands.
+
+The original workflow below is retained in
+[`stream2/track3/pilot/`](stream2/track3/pilot/README.md) as the **Quarter 2 pilot test**.
+
+### Pilot workflow
+
 Asks AI assistants the same 6 patient questions, 3 trials each, then labels RPSD's visibility
 (whether it is mentioned, how early, and next to which competitors) and checks each claim about
 RPSD against the clinic's fact sheet. Five questions do not name RPSD; one does. Answers come from
@@ -80,7 +90,7 @@ Both sources get the same labels and fact checks, but the analysis workflow belo
 API runs only. Labeled manual answers are exported separately as
 `data/track3/autolabels-sheet-<tester>-<timestamp>.csv`.
 
-**Full instructions: [`stream2/track3/README.md`](stream2/track3/README.md)**
+**Pilot instructions: [`stream2/track3/pilot/README.md`](stream2/track3/pilot/README.md)**
 
 Paths in this section are relative to `stream2/`.
 
@@ -88,18 +98,18 @@ Paths in this section are relative to `stream2/`.
 
 - Real data is saved in `data/track3/` inside `stream2/`. It is gitignored, so the team shares it privately.
 - A real API run requires API keys for the three providers (the OpenAI key also runs labeling) and the
-  private Google ID for the clinic fact sheet (ask a teammate), which goes in `track3/.env`. The collection
-  notebook asks for keys in hidden prompts; only `track3/run.py` reads them from `track3/.env`.
-- Labeling manual answers also requires the tracker sheet's ID and tab IDs in `track3/.env`. If the tab IDs
+  private Google ID for the clinic fact sheet (ask a teammate), which goes in `track3/pilot/.env`. The collection
+  notebook asks for keys in hidden prompts; only `track3/pilot/run.py` reads them from `track3/pilot/.env`.
+- Labeling manual answers also requires the tracker sheet's ID and tab IDs in `track3/pilot/.env`. If the tab IDs
   are set, the notebook labels those rows too, which adds paid calls. For an API-only run, leave them blank
   or set `SHEET_TABS = {}` in the notebook.
-- Without team access, you can still run the offline tests and demo, which need no keys or real data. Their fixtures in `track3/tests/fixtures/` are made up.
+- Without team access, you can still run the offline tests and demo, which need no keys or real data. Their fixtures in `track3/pilot/tests/fixtures/` are made up.
 
 **Software dependencies**
 
-- Full workflow, including both notebooks: `track3/requirements_eda.txt` (pandas, matplotlib, ipykernel),
+- Full workflow, including both notebooks: `track3/pilot/requirements_eda.txt` (pandas, matplotlib, ipykernel),
   tested with Python 3.14.
-- Command-line collection and labeling only (`track3/run.py`): Python 3.10 or later and `track3/requirements.txt`.
+- Command-line collection and labeling only (`track3/pilot/run.py`): Python 3.10 or later and `track3/pilot/requirements.txt`.
 
 **Commands to reproduce**
 
@@ -110,11 +120,11 @@ git clone https://github.com/MaayahGa/RPSD-Capstone.git
 cd RPSD-Capstone/stream2
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r track3/requirements_eda.txt
-python track3/run.py test                                       # 14 pipeline checks
-python -m unittest discover -s track3/tests -p 'test_*.py'      # 9 EDA checks
-python track3/prepare_eda.py --demo                             # writes a one-answer sample input
-# To see the analysis, run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = 'sample'
+python -m pip install -r track3/pilot/requirements_eda.txt
+python track3/pilot/run.py test                                       # 14 pipeline checks
+python -m unittest discover -s track3/pilot/tests -p 'test_*.py'      # 9 EDA checks
+python track3/pilot/prepare_eda.py --demo                             # writes a one-answer sample input
+# To see the analysis, run track3/pilot/notebooks/02_explore_responses.ipynb with BATCH_ID = 'sample'
 ```
 
 Reproduce the results of a saved batch (no keys or spending). AI answers vary between runs, so this is the
@@ -123,18 +133,18 @@ way to reproduce a specific result. Ask the Track 3 team for the batch's private
 `autolabels-api-<timestamp>.csv`. Then, after the install steps above:
 
 ```
-python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
-# Then run track3/notebooks/02_explore_responses.ipynb with BATCH_ID = '<batch>'
+python track3/pilot/prepare_eda.py --batch <batch> --tester <collector-id> --labels data/track3/autolabels-api-<timestamp>.csv
+# Then run track3/pilot/notebooks/02_explore_responses.ipynb with BATCH_ID = '<batch>'
 ```
 
-Collect a new batch (**collection and labeling make paid API calls**; see `track3/README.md` for each step):
+Collect a new batch (**collection and labeling make paid API calls**; see `track3/pilot/README.md` for each step):
 
 ```
-cp -n track3/.env.example track3/.env                           # fill in your Google IDs
-# 1. Collect and label: run track3/notebooks/01_collect_and_label.ipynb with a new BATCH_ID
+cp -n track3/pilot/.env.example track3/pilot/.env                           # fill in your Google IDs
+# 1. Collect and label: run track3/pilot/notebooks/01_collect_and_label.ipynb with a new BATCH_ID
 # 2. Build the analysis input:
-python track3/prepare_eda.py --batch <batch> --tester <name> --labels data/track3/autolabels-api-<timestamp>.csv
-# 3. Analyze: run track3/notebooks/02_explore_responses.ipynb with the same BATCH_ID
+python track3/pilot/prepare_eda.py --batch <batch> --tester <collector-id> --labels data/track3/autolabels-api-<timestamp>.csv
+# 3. Analyze: run track3/pilot/notebooks/02_explore_responses.ipynb with the same BATCH_ID
 ```
 
 Results are written to `data/track3/eda/<batch>/`: research tables, figures, and

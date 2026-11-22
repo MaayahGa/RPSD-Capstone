@@ -18,8 +18,8 @@ class PrepareEDATest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         subprocess.run([sys.executable, str(TRACK3 / 'run.py'), 'test'],
-                       cwd=TRACK3.parent, stdout=subprocess.DEVNULL, check=True)
-        cls.seed = TRACK3.parent / 'data/track3-test'
+                       cwd=TRACK3.parents[1], stdout=subprocess.DEVNULL, check=True)
+        cls.seed = TRACK3.parents[1] / 'data/track3-test'
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -102,7 +102,7 @@ helper_cells = [cell for cell in notebook['cells']
                 if 'competitor-position-helper' in cell.get('metadata', {}).get('tags', [])]
 if len(helper_cells) != 1:
     raise ValueError('Expected one competitor-position helper cell.')
-namespace = {'REPO': TRACK3.parent}
+namespace = {'REPO': TRACK3.parents[1]}
 exec(compile(''.join(helper_cells[0]['source']), str(NOTEBOOK), 'exec'), namespace)
 estimate_positions = namespace['estimate_positions']
 

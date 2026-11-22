@@ -10,7 +10,7 @@ import pandas as pd
 
 from rpsd_tools import _safe, _unsafe
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
 ANSWER_COLUMNS = {
     'Run ID': 'source_run_id', 'Provider': 'provider', 'Model requested': 'model_requested',
     'Model returned': 'model_returned', 'Prompt ID': 'prompt_id', 'Category': 'category',
@@ -107,8 +107,8 @@ def build_input(batch, tester, answers_path, labels_path, raw_dir, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--batch', help='Collection BATCH_ID, e.g. siya-pilot-01')
-    parser.add_argument('--tester', help='Person who collected this batch')
+    parser.add_argument('--batch', help='Collection BATCH_ID, e.g. collector1-pilot-01')
+    parser.add_argument('--tester', help='Stable collector identifier, e.g. Collector1')
     parser.add_argument('--answers', type=Path, help='Defaults to data/track3/<batch>-answers.csv')
     parser.add_argument('--labels', type=Path, help='Explicit autolabels-api-*.csv export for this batch')
     parser.add_argument('--raw-dir', type=Path, help='Defaults to the answers CSV directory')
@@ -118,7 +118,7 @@ def main():
     if args.demo:
         if any([args.batch, args.tester, args.answers, args.labels, args.raw_dir]):
             parser.error('--demo cannot be combined with real-data input arguments.')
-        subprocess.run([sys.executable, str(REPO / 'track3/run.py'), 'test'], cwd=REPO, check=True)
+        subprocess.run([sys.executable, str(REPO / 'track3/pilot/run.py'), 'test'], cwd=REPO, check=True)
         args.batch, args.tester = 'sample', 'Demo'
         args.answers = REPO / 'data/track3-test/sample-answers.csv'
         args.labels = next((REPO / 'data/track3-test').glob('autolabels-api-*.csv'))
