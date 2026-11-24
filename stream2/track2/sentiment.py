@@ -56,6 +56,11 @@ def score_sentiment(texts, model_name, batch_size, max_length, device):
     
     # sentiment score from [-1, 1]: P(positive) - P(negative)
     out["sentiment_score"] = out["positive"] - out["negative"]
+
+    # populate sentiment method & version cols for reproducibility
+    out["sentiment_method"] = "RoBERTa"
+    out["sentiment_version"] = model_name
+
     return out.rename(
         columns = {
             "negative": "prob_negative",
